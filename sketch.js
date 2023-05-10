@@ -1,3 +1,7 @@
+/*
+TP1 PROTOTIPO - Rovarino, Vasquez, Cardos, Rodriguez
+*/
+
 let cursor;     //objeto Dir_y_Vel
 let columnas = [];    //objetos columna
 
