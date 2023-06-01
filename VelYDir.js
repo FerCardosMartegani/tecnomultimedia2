@@ -12,6 +12,7 @@ class Dir_y_Vel {
     this.miDireccionPolar;
   }
 
+
   //-------------------------------------------------------------------------------------CALCULADORA
   calcularTodo(mi_X, mi_Y) {
     this.prevPosX = this.posX;
@@ -25,6 +26,7 @@ class Dir_y_Vel {
 
     this.vel = dist(this.posX, this.posY, this.prevPosX, this.prevPosY);
   }
+
 
   //-------------------------------------------------------------------------------------MÉTODOS GET
   velocidad() {
@@ -40,6 +42,7 @@ class Dir_y_Vel {
     return this.miDireccionPolar;
   }
 
+  
   //-------------------------------------------------------------------------------------DEBUGGER
   mostrarData() {
     push();
