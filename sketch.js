@@ -4,34 +4,35 @@ TP1 PROTOTIPO - Rovarino, Vasquez, Cardos, Rodriguez
 
 
 //---------------------------------------------------------------------------------------------------DECLARACIÓN
-let cursor;     //objeto Dir_y_Vel
+let micro;    //objeto micrófono
+let audioContext;    //motor de audio del navegador
+
+//-------------------------------------------------------------------------------------controladores de estados
+let haySonido;
+let debug;
 
 let amplitud;     //volumen del sonido
-let maxAmplitud;
-let minAmplitud;
-let preAmplitud;
-let varAmplitud;
+const maxAmplitud = 1;
+const minAmplitud = 0.02;
+let preAmplitud, varAmplitud;
 
 let frecuencia;       //frecuencia del sonido
-let maxFrecuencia=1000;
-let minFrecuencia=-maxFrecuencia;
-let preFrecuencia;
+const maxFrecuencia = 350;
+const minFrecuencia = 100;
+let preFrecuencia, varFrecuencia;
+const pichModel = 'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/';
 
 let longitud;       //duración del sonido
 
 let columnas = [];           //objetos columna
 let columnasFondo = [];
-let cantidadColumnasCentro = 100;    //columnas centrales
+let cantidadColumnasCentro = 100;
 let cantidadColumnasFondo;
-let margenColumnas;          //columnas ocultas iniciales, cambiará con el volumen
 const minColumnas = 35;
 const maxColumnas = 100;
 
 let PNGs = [];               //imágenes manchas de pintura
 const cantidadImagenes = 3;
-
-let dibujado = false;   //si ya se dibujó o no (para evitar refresh innecesario)
-let debug = false;      //activar-desactivar interfaz de debug
 
 
 //---------------------------------------------------------------------------------------------------PRELOAD
@@ -50,8 +51,13 @@ function setup(){
   imageMode(CENTER);
 
   //-------------------------------------------------------------------------------------SONIDO
-  cursor = new Dir_y_Vel();
+  audioContext = getAudioContext();
+  micro = new p5.AudioIn();
+  micro.start(startPitch);
+  userStartAudio();
+
   amplitud=preAmplitud=varAmplitud=frecuencia=preFrecuencia=longitud=0;
+  haySonido=debug=false;
 
   //-------------------------------------------------------------------------------------COLUMNAS DEL FONDO
   cantidadColumnasFondo = map(width, 0,1920, 0,90);    //cantidad de columnas de fondo según el ancho de pantalla
@@ -75,16 +81,19 @@ function setup(){
 function draw(){
 
   //-------------------------------------------------------------------------------------CALCULADORA
-  cursor.calcularTodo(mouseX, mouseY);      //calcular datos del cursor
-  amplitud = round(cursor.velocidad());    //velocidad del cursor, próximamente volumen del sonido 
-  if((pmouseX != mouseX) || (pmouseY != mouseY)){ longitud++; }else{ longitud=0; }    //tiempo que lleva moviéndose el cursor, próximamente duración del sonido
-  frecuencia = abs(cursor.direccionX())-abs(cursor.direccionY());   //si el cursor es más vertical (>0) u horizontal (<0), próximamente si el sonido es más agudo (>0) o grave (<0)
-  frecuencia = constrain(frecuencia, minFrecuencia,maxFrecuencia);
+  amplitud = micro.getLevel();      //volumen del sonido
+  amplitud = nf(amplitud, 2,4);
+  amplitud = constrain(amplitud, minAmplitud, maxAmplitud);
 
-  varAmplitud = amplitud-preAmplitud;
-  if(abs(varAmplitud) > 40){ cantidadColumnasCentro+=round(varAmplitud/50); }
+  haySonido = amplitud > minAmplitud;   //hay sonido cuando hay volumen por encima del ruido de fondo
+
+  frecuencia = nf(frecuencia, 4,1);
+  frecuencia = constrain(frecuencia, minFrecuencia,maxFrecuencia);
   
-  if(longitud>0){
+  //if(abs(varAmplitud) > 0.01){ cantidadColumnasCentro+=round(varAmplitud*100); }
+  cantidadColumnasCentro = map(lerp(amplitud,preAmplitud, 0.5), minAmplitud,maxAmplitud, minColumnas,maxColumnas);
+ 
+  if(haySonido){
     //-------------------------------------------------------------------------COLUMNAS FONDO
     for(let i=0; i<cantidadColumnasFondo; i++){
       let xi = calcularColumna(0, i, cantidadColumnasFondo);
@@ -93,21 +102,21 @@ function draw(){
     }
 
     //-------------------------------------------------------------------------COLUMNAS CENTRALES
-    cantidadColumnasCentro = constrain(cantidadColumnasCentro, minColumnas,maxColumnas);
+    cantidadColumnasCentro = constrain(round(cantidadColumnasCentro), minColumnas,maxColumnas);
     for(let i=0; i<cantidadColumnasCentro; i++){
       let xi = calcularColumna(0, i, cantidadColumnasCentro);
       let xf = calcularColumna(1, i, cantidadColumnasCentro);
       columnas[i].recalcular(xi,xf);    //instanciar columnas (X inicial, X final, incluir imágenes)
     }
 
-    //sólo actualizar el dibujo si no hubo un descenso demasiado brusco del volumen, para que se guarde la pintura generada
-    if((varAmplitud) > -75){ dibujado = false; }
-
     preAmplitud = amplitud;
-  }
+    preFrecuencia = frecuencia;
+
+    longitud++;          //tiempo que lleva sonando el sonido
+  }else{ longitud=0; }  
 
   //-------------------------------------------------------------------------------------DIBUJO
-  if(!dibujado){
+  if(haySonido){
     clear();          //borrar dibujo anterior para no saturar la memoria
     background(360);
     for(let i=0; i<cantidadColumnasFondo; i++){
@@ -116,8 +125,6 @@ function draw(){
     for(let i=0; i<cantidadColumnasCentro; i++){
       columnas[i].dibujar();                  //dibujar columnas
     }
-
-    dibujado = true;  //evitar que el dibujo se refresce si no hubo cambios
   }
 
   //-------------------------------------------------------------------------------------DEBUG
@@ -125,9 +132,8 @@ function draw(){
     push();
       fill(360,75); rectMode(CORNERS); rect(0,0, width,150);  //fondo para el debugger
 
-      cursor.mostrarData();   //debugger del Dir_y_Vel
-
-      textSize(24); fill(0); textAlign(RIGHT,CENTER);       //debugger sonido
+      textSize(24); fill(0);                 //debugger sonido
+      textAlign(RIGHT,CENTER);
       text("Frecuencia: " + frecuencia, width-50, 50);
       text("Amplitud: " + amplitud, width-50, 75);
       text("Longitud: " + longitud, width-50, 100);
@@ -151,6 +157,29 @@ function calcularColumna(modo, _i, cantidad){
 
 //---------------------------------------------------------------------------------------------------CLIC DEBUGGER
 function mouseClicked(){
-  dibujado=false;
   debug = !debug;
+}
+
+
+//---------------------------------------------------------------------------------------------------AJUSTAR PANTALLA
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+
+//---------------------------------------------------------------------------------------------------LIBRERÍA ml5
+function startPitch() {
+  pitch = ml5.pitchDetection(pichModel, audioContext , micro.stream, modelLoaded);
+}
+function modelLoaded() {
+  getPitch();
+}
+function getPitch() {
+  pitch.getPitch(function(err, frequency) {
+    if (frequency) {
+      frecuencia = frequency;
+    } else {
+    }
+    getPitch();
+  })
 }

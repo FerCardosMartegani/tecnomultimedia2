@@ -3,7 +3,7 @@
 class Columna{
 
   //-------------------------------------------------------------------------------------CONSTRUCTOR
-  constructor(_x1, _x4, usarImagenes){
+  constructor(_x1, _x4, _tieneImagenes){
     
     //calcula la curva de la línea a partir de X inicial y X final; la altura siempre ocupa toda la pantalla
     this.x1=_x1;                        this.y1=0;
@@ -21,7 +21,7 @@ class Columna{
       posY = bezierPoint(this.y1,this.y2,this.y3,this.y4, i/this.cantidadManchas);
       if(i>0){
         let esImagen = false;                       //sólo algunas manchas son PNGs
-        if((posY>this.y2 && posY<this.y3) && (floor(random(0,this.chanceManchas))==0) && usarImagenes){
+        if((posY>this.y2 && posY<this.y3) && (floor(random(0,this.chanceManchas))==0) && _tieneImagenes){
           esImagen=true;
         }
         this.pintura[i] = new Pintura(posX,posY, prePosX,prePosY, esImagen);
@@ -62,11 +62,11 @@ class Columna{
     pop();
 
     for(let i=1; i<this.cantidadManchas; i++){    //manchas de pintura sin imagen por abajo
-      this.pintura[i].dibujar(false);
+      this.pintura[i].dibujar();
     }
     for(let i=1; i<this.cantidadManchas; i++){    //manchas de pintura de imagen por encima
       if(this.pintura[i].esImagen){
-        this.pintura[i].dibujar(true);
+        this.pintura[i].dibujar();
       }
     }
   }
@@ -74,11 +74,13 @@ class Columna{
 
 
 
+
+
 //---------------------------------------------------------------------------------------------------MANCHAS DE PINTURA
 class Pintura{
   
   //-------------------------------------------------------------------------------------CONSTRUCTOR
-  constructor(_x, _y, _px, _py, usarImagen){
+  constructor(_x, _y, _px, _py, _usarImagen){
     this.desviacion = random(-20,20);
     this.posX=_x+this.desviacion; this.posY=_y;
     this.angulo = atan2(_y-_py, _x-_px);
@@ -93,7 +95,7 @@ class Pintura{
     this.ancho = map(this.alfa, 0,100, 5,10)*random(1, 3);   //hacia el centro tienden a ser más grandes
     this.alto = this.ancho*random(20, 50);
 
-    this.esImagen = usarImagen;
+    this.esImagen = _usarImagen;
     if(this.esImagen){ this.mancha = int(random(0,cantidadImagenes)); }    //asignar una de las imagenes
   }
 
@@ -109,11 +111,11 @@ class Pintura{
   }
 
   //-------------------------------------------------------------------------------------METODO DIBUJAR
-  dibujar(usarImagen){
+  dibujar(){
     push();
       translate(this.posX,this.posY);
 
-      if(usarImagen){
+      if(this.esImagen){
         rotate(this.angulo+90);
         tint(this.tinte, 100,this.brillo, 100);
         image(PNGs[this.mancha], 0,0, this.ancho*5,this.alto);
