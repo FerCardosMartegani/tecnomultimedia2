@@ -1,5 +1,5 @@
 /*
-TP1 PROTOTIPO - Rovarino, Vasquez, Cardos, Rodriguez
+TP1 Comisión Lisandro - Fernando Cardos, Clara Rovarino, Elian Rodriguez, Luca Vasquez
 */
 
 
