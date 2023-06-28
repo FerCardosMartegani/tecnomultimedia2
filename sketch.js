@@ -15,15 +15,15 @@ const minFrecuencia = 100;    //frecuencia mínima
 let micro;    //objeto micrófono
 let audioContext;    //motor de audio del navegador
 
-//-------------------------------------------------------------------------------------controladores de estados
-let haySonido, debug, reseted;
+let haySonido, debug, reseted;    //controladores de estados
 
-let amplitud, preAmplitud, varAmplitud;     //volumen del sonido
+let amplitud, amplitudCruda, preAmplitud, varAmplitud;     //volumen del sonido
 
-let frecuencia, preFrecuencia, varFrecuencia;       //frecuencia del sonido
+let frecuencia, frecuenciaCruda, preFrecuencia, varFrecuencia;       //frecuencia del sonido
 const pichModel = 'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/';
 
-let longitud, silencio;       //duración del sonido y del silencio
+let longitud, silencio, resetDelay;       //duración del sonido, del silencio, y del silencio necesario para reiniciar
+const resetDelayBase = 5;   //tiempo (en segundos) que debe durar el silencio para que se reinicie el programa
 
 let columnas = [];           //objetos columna
 let columnasFondo = [];
@@ -57,7 +57,7 @@ function setup(){
   micro.start(startPitch);
   userStartAudio();
 
-  amplitud=preAmplitud=varAmplitud=frecuencia=preFrecuencia=longitud=silencio=0;
+  resetDelay=amplitud=amplitudCruda=preAmplitud=varAmplitud=frecuencia=frecuenciaCruda=preFrecuencia=longitud=silencio=0;
   haySonido=debug=reseted=false;
 
   configInicial();
@@ -68,19 +68,17 @@ function setup(){
 function draw(){
 
   //-------------------------------------------------------------------------------------CALCULADORA
-  amplitud = micro.getLevel();      //volumen del sonido
-  amplitud = nf(amplitud, 2,4);
-  amplitud = constrain(amplitud, minAmplitud, maxAmplitud);
+  amplitudCruda = micro.getLevel();      //volumen del sonido
+  amplitud = constrain(amplitudCruda, minAmplitud, maxAmplitud);
 
-  haySonido = amplitud > minAmplitud;   //hay sonido cuando hay volumen por encima del ruido de fondo
-
-  frecuencia = lerp(frecuencia,preFrecuencia, 0.5);   //suavizar input de frecuencia
-  frecuencia = nf(frecuencia, 4,1);
+  frecuencia = lerp(frecuenciaCruda,preFrecuencia, 0.5);   //suavizar input de frecuencia
   frecuencia = constrain(frecuencia, minFrecuencia,maxFrecuencia);
   
-  //if(abs(varAmplitud) > 0.01){ cantidadColumnasCentro+=round(varAmplitud*100); }
-  cantidadColumnasCentro = map(lerp(amplitud,preAmplitud, 0.5), minAmplitud,maxAmplitud, minColumnas,maxColumnas);
+  cantidadColumnasCentro = map(lerp(amplitud,preAmplitud, 0.5), minAmplitud,maxAmplitud, minColumnas,maxColumnas);    //a mayor amplitud, más columnas centrales
  
+  resetDelay = resetDelayBase*frameRate();
+
+  haySonido = amplitud > minAmplitud;   //hay sonido cuando hay volumen por encima del ruido de fondo
   if(haySonido){
     //-------------------------------------------------------------------------COLUMNAS FONDO
     for(let i=0; i<cantidadColumnasFondo; i++){
@@ -90,15 +88,15 @@ function draw(){
     }
 
     //-------------------------------------------------------------------------COLUMNAS CENTRALES
-    cantidadColumnasCentro = constrain(round(cantidadColumnasCentro), minColumnas,maxColumnas);
+    cantidadColumnasCentro = round(constrain(cantidadColumnasCentro, minColumnas,maxColumnas));
     for(let i=0; i<cantidadColumnasCentro; i++){
       let xi = calcularColumna(0, i, cantidadColumnasCentro);
       let xf = calcularColumna(1, i, cantidadColumnasCentro);
       columnas[i].recalcular(xi,xf);    //instanciar columnas (X inicial, X final, incluir imágenes)
     }
 
-    preAmplitud = amplitud;
-    preFrecuencia = frecuencia;
+    preAmplitud = amplitudCruda;
+    preFrecuencia = frecuenciaCruda;
 
     longitud++;          //tiempo que lleva sonando el sonido
     silencio = 0;
@@ -107,8 +105,8 @@ function draw(){
     longitud=0;
     silencio++;         //tiempo que lleva en silencio
 
-    let resetDelay = 5;      //el lienzo se reinicia si hay un silencio prolongado
-    if(silencio > frameRate()*resetDelay && !reseted){ configInicial(); }
+    
+    if(silencio > resetDelay && !reseted){ configInicial(); }   //el lienzo se reinicia si hay un silencio prolongado
   }  
 
   //-------------------------------------------------------------------------------------DIBUJO
@@ -128,12 +126,17 @@ function draw(){
     push();
       fill(360,75); rectMode(CORNERS); rect(0,0, width,150);  //fondo para el debugger
 
-      textSize(24); fill(0);                 //debugger sonido
+      textSize(24); fill(0);
+
+      textAlign(LEFT,CENTER);
+      text("Frecuencia sin filtrar: " + frecuenciaCruda, 50,50);
+      text("Amplitud sin filtrar: " + amplitudCruda, 50,75);
+      text("Longitud: " + longitud, 50, 100);
+
       textAlign(RIGHT,CENTER);
-      text("Frecuencia: " + frecuencia, width-50, 50);
-      text("Amplitud: " + amplitud, width-50, 75);
-      text("Longitud: " + longitud, width-50, 100);
-      text("Columnas: " + cantidadColumnasCentro, width-50, 125);
+      text("Frecuencia filtrada: " + nf(frecuencia, 4,1), width-50, 50);
+      text("Amplitud filtrada: " + nf(amplitud, 2,4), width-50, 75);
+      text("Tiempo en silencio: "+silencio+" / "+nf(round(resetDelay), 2,0), width-50, 100);
     pop();
   }
 }
@@ -201,7 +204,7 @@ function modelLoaded() {
 function getPitch() {
   pitch.getPitch(function(err, frequency) {
     if (frequency) {
-      frecuencia = frequency;
+      frecuenciaCruda = frequency;
     } else {
     }
     getPitch();
