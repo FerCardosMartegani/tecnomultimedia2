@@ -3,17 +3,25 @@ TP1 Comisión Lisandro - Fernando Cardos, Clara Rovarino, Elian Rodriguez, Luca 
 */
 
 
-//---------------------------------------------------------------------------------------------------CALIBRACIÓN
-const maxAmplitud = 0.8;        //volumen máximo
+//---------------------------------------------------------------------------------------------------TOCAR SI ALGO FALLA
+
+//-------------------------------------------------------------------------------------CALIBRACIÓN
+const maxAmplitud = 0.8;      //volumen máximo
 const minAmplitud = 0.02;     //volumen mínimo
 
 const maxFrecuencia = 500;    //frecuencia máxima
 const minFrecuencia = 100;    //frecuencia mínima
 
+//-------------------------------------------------------------------------------------RENDIMIENTO
+const minColumnas = 35;      //mínimo de imágenes centrales (para que quede bonito)
+const maxColumnas = 90;      //máximo de imágenes centrales (para que no explote la compu)
+
+//-------------------------------------------------------------------------------------OPCIONAL
+const resetDelayBase = 5;   //tiempo (en segundos) que debe durar el silencio para reiniciar
+
 
 //---------------------------------------------------------------------------------------------------DECLARACIÓN
-let micro;    //objeto micrófono
-let audioContext;    //motor de audio del navegador
+let micro, audioContext;    //objeto micrófono
 
 let haySonido, debug, reseted;    //controladores de estados
 
@@ -22,15 +30,12 @@ let amplitud, amplitudCruda, preAmplitud, varAmplitud;     //volumen del sonido
 let frecuencia, frecuenciaCruda, preFrecuencia, varFrecuencia;       //frecuencia del sonido
 const pichModel = 'https://cdn.jsdelivr.net/gh/ml5js/ml5-data-and-models/models/pitch-detection/crepe/';
 
-let longitud, silencio, resetDelay;       //duración del sonido, del silencio, y del silencio necesario para reiniciar
-const resetDelayBase = 5;   //tiempo (en segundos) que debe durar el silencio para que se reinicie el programa
+let longitud, silencio, resetDelay;       //manejo de tiempos
 
 let columnas = [];           //objetos columna
 let columnasFondo = [];
-let cantidadColumnasCentro = 100;
+let cantidadColumnasCentro;
 let cantidadColumnasFondo;
-const minColumnas = 35;
-const maxColumnas = 90;
 
 let PNGs = [];               //imágenes manchas de pintura
 const cantidadImagenes = 4;
@@ -58,6 +63,7 @@ function setup(){
   userStartAudio();
 
   resetDelay=amplitud=amplitudCruda=preAmplitud=varAmplitud=frecuencia=frecuenciaCruda=preFrecuencia=longitud=silencio=0;
+  cantidadColumnasCentro=maxColumnas;
   haySonido=debug=reseted=false;
 
   configInicial();
@@ -69,22 +75,23 @@ function draw(){
 
   //-------------------------------------------------------------------------------------CALCULADORA
   amplitudCruda = micro.getLevel();      //volumen del sonido
+  amplitud = lerp(amplitudCruda,preAmplitud, 0.5);   //suavizar input de amplitud
   amplitud = constrain(amplitudCruda, minAmplitud, maxAmplitud);
+
+  cantidadColumnasCentro = map(amplitud, minAmplitud,maxAmplitud, minColumnas,maxColumnas);    //a mayor amplitud, más columnas centrales
 
   frecuencia = lerp(frecuenciaCruda,preFrecuencia, 0.5);   //suavizar input de frecuencia
   frecuencia = constrain(frecuencia, minFrecuencia,maxFrecuencia);
-  
-  cantidadColumnasCentro = map(lerp(amplitud,preAmplitud, 0.5), minAmplitud,maxAmplitud, minColumnas,maxColumnas);    //a mayor amplitud, más columnas centrales
  
-  resetDelay = resetDelayBase*frameRate();
+  resetDelay = resetDelayBase*frameRate();    //tiempo que debe durar el silencio para reiniciar, ajustado al rendimiento del programa
 
-  haySonido = amplitud > minAmplitud;   //hay sonido cuando hay volumen por encima del ruido de fondo
+  haySonido = amplitudCruda > minAmplitud;   //hay sonido cuando hay volumen por encima del ruido de fondo
   if(haySonido){
     //-------------------------------------------------------------------------COLUMNAS FONDO
     for(let i=0; i<cantidadColumnasFondo; i++){
       let xi = calcularColumna(0, i, cantidadColumnasFondo);
       let xf = calcularColumna(1, i, cantidadColumnasFondo);
-      columnasFondo[i].recalcular(xi,xf);    //instanciar columnas (X inicial, X final, sólo primitivas)
+      columnasFondo[i].recalcular(xi,xf);    //cambiar la curvatura de las columnas
     }
 
     //-------------------------------------------------------------------------COLUMNAS CENTRALES
@@ -92,11 +99,11 @@ function draw(){
     for(let i=0; i<cantidadColumnasCentro; i++){
       let xi = calcularColumna(0, i, cantidadColumnasCentro);
       let xf = calcularColumna(1, i, cantidadColumnasCentro);
-      columnas[i].recalcular(xi,xf);    //instanciar columnas (X inicial, X final, incluir imágenes)
+      columnas[i].recalcular(xi,xf);    //cambiar la curvatura de las columnas
     }
 
-    preAmplitud = amplitudCruda;
-    preFrecuencia = frecuenciaCruda;
+    preAmplitud = amplitud;       //guardar datos del último sonido
+    preFrecuencia = frecuencia;
 
     longitud++;          //tiempo que lleva sonando el sonido
     silencio = 0;
@@ -104,27 +111,26 @@ function draw(){
   }else{
     longitud=0;
     silencio++;         //tiempo que lleva en silencio
-
     
     if(silencio > resetDelay && !reseted){ configInicial(); }   //el lienzo se reinicia si hay un silencio prolongado
   }  
 
   //-------------------------------------------------------------------------------------DIBUJO
   if(haySonido){
-    clear();          //borrar dibujo anterior para no saturar la memoria
+    clear();          //borrar dibujo anterior para no saturar la memoria (nos tiró ese error varias veces)
     background(360);
     for(let i=0; i<cantidadColumnasFondo; i++){
-      columnasFondo[i].dibujar();                  //dibujar columnas
+      columnasFondo[i].dibujar();                  //dibujar columnas del fondo
     }
     for(let i=0; i<cantidadColumnasCentro; i++){
-      columnas[i].dibujar();                  //dibujar columnas
+      columnas[i].dibujar();                  //dibujar columnas centrales por encima del fondo
     }
   }
 
   //-------------------------------------------------------------------------------------DEBUG
   if(debug){
     push();
-      fill(360,75); rectMode(CORNERS); rect(0,0, width,150);  //fondo para el debugger
+      fill(360,60); rectMode(CORNERS); rect(0,0, width,150);  //fondo para hacerlo más legible
 
       textSize(24); fill(0);
 
@@ -142,38 +148,26 @@ function draw(){
 }
 
 
-//---------------------------------------------------------------------------------------------------CÁLCULOS DE COLUMNAS
-function calcularColumna(modo, _i, cantidad){
-  let distanciaEntreColumnas = (cantidad==cantidadColumnasFondo ? (cantidad-2)/5 : map(cantidad, minColumnas,maxColumnas, cantidad*1.25,cantidad/2));
-  let posicionAlMedio = map(_i, 0,cantidad-1, -distanciaEntreColumnas,+distanciaEntreColumnas);
-  let posicion = width/2+posicionAlMedio*(cantidad==cantidadColumnasFondo ? 100 : map(width, 0,1920, 0,15));
-  let curvatura = (posicion-width/2)/2.5;
-
-  if(modo==0){ return posicion+curvatura*map(frecuencia, minFrecuencia,maxFrecuencia, -1,1); }
-  if(modo==1){ return posicion-curvatura*map(frecuencia, minFrecuencia,maxFrecuencia, -1,1); }
-}
-
-
 //---------------------------------------------------------------------------------------------------CLIC DEBUGGER
 function mouseClicked(){
-  debug = !debug;
+  debug = !debug;                  //el clic activa/desactiva la interfaz de debug
 }
 
 
 //---------------------------------------------------------------------------------------------------AJUSTAR PANTALLA
 function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+  resizeCanvas(windowWidth, windowHeight);       //reacomodar el dibujo si cambia la ventana del sketch
+  configInicial();
 }
 
 
 //---------------------------------------------------------------------------------------------------REINICIO
-function configInicial(){
+function configInicial(){       //crea las instancias de objetos columna
   reseted = true;
   push();
-    //fill(180, 25); noStroke();
     noFill(); stroke(360); strokeWeight(35);
     rectMode(CORNERS);
-    rect(0,0, width,height);  //fondo para el debugger
+    rect(0,0, width,height);  //"marco de foto"
   pop();
 
   //-------------------------------------------------------------------------------------COLUMNAS DEL FONDO
@@ -194,7 +188,19 @@ function configInicial(){
 }
 
 
-//---------------------------------------------------------------------------------------------------LIBRERÍA ml5
+//---------------------------------------------------------------------------------------------------CÁLCULOS DE COLUMNAS
+function calcularColumna(modo, _i, cantidad){
+  let distanciaEntreColumnas = (cantidad==cantidadColumnasFondo ? (cantidad-2)/5 : map(cantidad, minColumnas,maxColumnas, cantidad*1.25,cantidad/2));
+  let posicionAlMedio = map(_i, 0,cantidad-1, -distanciaEntreColumnas,+distanciaEntreColumnas);
+  let posicion = width/2+posicionAlMedio*(cantidad==cantidadColumnasFondo ? 100 : map(width, 0,1920, 0,15));
+  let curvatura = (posicion-width/2)/2.5;
+
+  if(modo==0){ return posicion+curvatura*map(frecuencia, minFrecuencia,maxFrecuencia, -1,1); }    //cambia el signo (posicion +/- curvatura) para que arriba y abajo se desplacen en direcciones opuestas
+  if(modo==1){ return posicion-curvatura*map(frecuencia, minFrecuencia,maxFrecuencia, -1,1); }
+}
+
+
+//---------------------------------------------------------------------------------------------------FRECUENCIA CON ml5
 function startPitch() {
   pitch = ml5.pitchDetection(pichModel, audioContext , micro.stream, modelLoaded);
 }
@@ -205,7 +211,6 @@ function getPitch() {
   pitch.getPitch(function(err, frequency) {
     if (frequency) {
       frecuenciaCruda = frequency;
-    } else {
     }
     getPitch();
   })
