@@ -13,8 +13,10 @@ const maxFrecuencia = 500;    //frecuencia máxima
 const minFrecuencia = 100;    //frecuencia mínima
 
 //-------------------------------------------------------------------------------------RENDIMIENTO
-const minColumnas = 35;      //mínimo de imágenes centrales (para que quede bonito)
-const maxColumnas = 90;      //máximo de imágenes centrales (para que no explote la compu)
+const minColumnasCentro = 10;      //mínimo de columnas centrales
+const maxColumnasCentro = 20;      //máximo de columnas centrales
+
+const cantidadColumnasFondo = 70;   //cantidad de columnas de fondo
 
 //-------------------------------------------------------------------------------------OPCIONAL
 const resetDelayBase = 5;   //tiempo (en segundos) que debe durar el silencio para reiniciar
@@ -35,23 +37,27 @@ let longitud, silencio, resetDelay;       //manejo de tiempos
 let columnas = [];           //objetos columna
 let columnasFondo = [];
 let cantidadColumnasCentro;
-let cantidadColumnasFondo;
 
-let PNGs = [];               //imágenes manchas de pintura
-const cantidadImagenes = 4;
+let pngCentro = [];               //imágenes manchas centrales
+const cantidadImagenesCentro = 4;
+let pngFondo = [];               //imágenes manchas fondo
+const cantidadImagenesFondo = 4;
 
 
 //---------------------------------------------------------------------------------------------------PRELOAD
 function preload(){
-  for(let i=0; i<cantidadImagenes; i++){
-    PNGs[i] = loadImage("./data/mancha"+i+".png");    //cargar PNGs de manchas
+  for(let i=0; i<cantidadImagenesCentro; i++){
+    pngCentro[i] = loadImage("./data/mancha"+i+".png");    //cargar PNGs de manchas para el centro
+  }
+  for(let i=0; i<cantidadImagenesFondo; i++){
+    pngFondo[i] = loadImage("./data/fondo"+i+".png");    //cargar PNGs de manchas para el fondo
   }
 }
 
 
 //---------------------------------------------------------------------------------------------------SETUP
 function setup(){
-  createCanvas(innerWidth, innerHeight);
+  createCanvas(800,500);
   colorMode(HSB, 360, 100, 100, 100);
   angleMode(DEGREES);
   imageMode(CENTER);
@@ -63,7 +69,7 @@ function setup(){
   userStartAudio();
 
   resetDelay=amplitud=amplitudCruda=preAmplitud=varAmplitud=frecuencia=frecuenciaCruda=preFrecuencia=longitud=silencio=0;
-  cantidadColumnasCentro=maxColumnas;
+  cantidadColumnasCentro=maxColumnasCentro;
   haySonido=debug=reseted=false;
 
   configInicial();
@@ -78,7 +84,7 @@ function draw(){
   amplitud = lerp(amplitudCruda,preAmplitud, 0.5);   //suavizar input de amplitud
   amplitud = constrain(amplitudCruda, minAmplitud, maxAmplitud);
 
-  cantidadColumnasCentro = map(amplitud, minAmplitud,maxAmplitud, minColumnas,maxColumnas);    //a mayor amplitud, más columnas centrales
+  cantidadColumnasCentro = map(amplitud, minAmplitud,maxAmplitud, minColumnasCentro,maxColumnasCentro);    //a mayor amplitud, más columnas centrales
 
   frecuencia = lerp(frecuenciaCruda,preFrecuencia, 0.5);   //suavizar input de frecuencia
   frecuencia = constrain(frecuencia, minFrecuencia,maxFrecuencia);
@@ -95,7 +101,7 @@ function draw(){
     }
 
     //-------------------------------------------------------------------------COLUMNAS CENTRALES
-    cantidadColumnasCentro = round(constrain(cantidadColumnasCentro, minColumnas,maxColumnas));
+    cantidadColumnasCentro = round(constrain(cantidadColumnasCentro, minColumnasCentro,maxColumnasCentro));
     for(let i=0; i<cantidadColumnasCentro; i++){
       let xi = calcularColumna(0, i, cantidadColumnasCentro);
       let xf = calcularColumna(1, i, cantidadColumnasCentro);
@@ -154,24 +160,18 @@ function mouseClicked(){
 }
 
 
-//---------------------------------------------------------------------------------------------------AJUSTAR PANTALLA
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);       //reacomodar el dibujo si cambia la ventana del sketch
-  configInicial();
-}
-
-
 //---------------------------------------------------------------------------------------------------REINICIO
 function configInicial(){       //crea las instancias de objetos columna
   reseted = true;
+
   push();
-    noFill(); stroke(360); strokeWeight(35);
+    noFill(); stroke(45,100,100); strokeWeight(35);
     rectMode(CORNERS);
     rect(0,0, width,height);  //"marco de foto"
   pop();
 
   //-------------------------------------------------------------------------------------COLUMNAS DEL FONDO
-  cantidadColumnasFondo = map(width, 0,1920, 0,90);    //cantidad de columnas de fondo según el ancho de pantalla
+  //cantidadColumnasFondo = 90;
   for(let i=0; i<cantidadColumnasFondo; i++){
     let xi = calcularColumna(0, i, cantidadColumnasFondo);
     let xf = calcularColumna(1, i, cantidadColumnasFondo);
@@ -179,7 +179,7 @@ function configInicial(){       //crea las instancias de objetos columna
   }
 
   //-------------------------------------------------------------------------------------COLUMNAS CENTRALES
-  cantidadColumnasCentro = constrain(cantidadColumnasCentro, minColumnas,maxColumnas);   //seguro para que no cargue demasiadas imágenes
+  cantidadColumnasCentro = constrain(cantidadColumnasCentro, minColumnasCentro,maxColumnasCentro);   //seguro para que no cargue demasiadas imágenes
   for(let i=0; i<cantidadColumnasCentro; i++){
     let xi = calcularColumna(0, i, cantidadColumnasCentro);
     let xf = calcularColumna(1, i, cantidadColumnasCentro);
@@ -190,10 +190,10 @@ function configInicial(){       //crea las instancias de objetos columna
 
 //---------------------------------------------------------------------------------------------------CÁLCULOS DE COLUMNAS
 function calcularColumna(modo, _i, cantidad){
-  let distanciaEntreColumnas = (cantidad==cantidadColumnasFondo ? (cantidad-2)/5 : map(cantidad, minColumnas,maxColumnas, cantidad*1.25,cantidad/2));
+  let distanciaEntreColumnas = (cantidad==cantidadColumnasFondo ? (cantidad-2)/10 : map(cantidadColumnasCentro, minColumnasCentro,maxColumnasCentro, cantidad*4,cantidad));
   let posicionAlMedio = map(_i, 0,cantidad-1, -distanciaEntreColumnas,+distanciaEntreColumnas);
-  let posicion = width/2+posicionAlMedio*(cantidad==cantidadColumnasFondo ? 100 : map(width, 0,1920, 0,15));
-  let curvatura = (posicion-width/2)/2.5;
+  let posicion = width/2+posicionAlMedio*(cantidad==cantidadColumnasFondo ? 100 : map(cantidadColumnasCentro ,minColumnasCentro,maxColumnasCentro, 7,12));
+  let curvatura = (posicion-width/2)/3;
 
   if(modo==0){ return posicion+curvatura*map(frecuencia, minFrecuencia,maxFrecuencia, -1,1); }    //cambia el signo (posicion +/- curvatura) para que arriba y abajo se desplacen en direcciones opuestas
   if(modo==1){ return posicion-curvatura*map(frecuencia, minFrecuencia,maxFrecuencia, -1,1); }
