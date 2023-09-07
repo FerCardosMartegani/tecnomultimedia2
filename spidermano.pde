@@ -4,6 +4,7 @@
 
 
 //--------------------------------------------------------------------------------------------------------------------------------DECLARACIÓN
+
 //------------------------------------------------------------------------------------------------------------FÍSICA
 import fisica.*;
 FWorld mundo;
@@ -11,6 +12,9 @@ FWorld mundo;
 //------------------------------------------------------------------------------------------CUERPOS CON GRAVEDAD
 ArrayList<FBody> cuerposG;
 Spiderman spiderman;
+ArrayList<Bomba> bombas;
+
+float gravedad;
 
 //------------------------------------------------------------------------------------------CUERPOS SIN GRAVEDAD
 ArrayList<FBody> cuerposSinG;
@@ -58,21 +62,24 @@ void setup() {
   Fisica.init(this);
   mundo = new FWorld();
   mundo.setEdges();
+  mundo.setGravity(0, 0);
+
+  gravedad = 1250;
 
   //------------------------------------------------------------------------------------------CUERPOS CON GRAVEDAD
   cuerposG = new ArrayList<FBody>();
   spiderman = new Spiderman();
 
+  bombas = new ArrayList<Bomba>();
+
   //------------------------------------------------------------------------------------------CUERPOS SIN GRAVEDAD
   cuerposSinG = new ArrayList<FBody>();
   duende = new Duende();
 
-  //------------------------------------------------------------------------PLATAFORMAS (posX, posY, tamX, tamY)
+  //------------------------------------------------------------------------PLATAFORMAS (posX, posY, tamX, tamY, rot)
   plataformas = new ArrayList<Plataforma>();
-  plataformas.add(new Plataforma(width/2, height/2+100, 200, 50));
-  plataformas.get(0).rotar(45);
-  plataformas.add(new Plataforma(width*4/6, height-200, 200, 10));
-  plataformas.add(new Plataforma(width/2, height/3, 200, 10));
+  plataformas.add(new Plataforma(width/2, height/2+100, 200, 50, 45));
+  plataformas.add(new Plataforma(width*4/6, height-200, 200, 10, 0));
 
   //------------------------------------------------------------------------GANCHOS (posX, posY)
   ganchos = new ArrayList<Gancho>();
@@ -103,6 +110,7 @@ void draw() {
 
 
   //------------------------------------------------------------------------------------------------------------PANTALLAS
+
   //------------------------------------------------------------------------------------------MENÚ
   if (pantalla == MENU) {
     background(45, 75, 75);    //**ACÁ TENDRÍA QUE ESTAR LA IMAGEN DEL FONDO
@@ -114,11 +122,15 @@ void draw() {
     mundo.step();
     mundo.draw();
 
+    for (int i=0; i<cuerposG.size(); i++) {              //gravedad falsa
+      cuerposG.get(i).addForce(0, gravedad);
+    }
+
     tela.actualizarJoint();
     tela.dibujar();
 
     spiderman.dibujar();
-    
+
     duende.mover();
     duende.dibujar();
 
@@ -127,6 +139,9 @@ void draw() {
     }
     for (int i=0; i<ganchos.size(); i++) {
       ganchos.get(i).dibujar();
+    }
+    for (int i=0; i<bombas.size(); i++) {
+      bombas.get(i).dibujar();
     }
   }
 
@@ -167,25 +182,19 @@ void draw() {
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------COLISIONES
-void contactStarted(FContact contacto){
+void contactStarted(FContact contacto) {
   FBody cuerpo1 = contacto.getBody1();
   FBody cuerpo2 = contacto.getBody2();
-  
-  if(((cuerpo1 == spiderman.getFBody()) && (cuerpo2 == duende.getFBody())) || ((cuerpo2 == spiderman.getFBody()) && (cuerpo1 == duende.getFBody()))){
+
+  if (((cuerpo1 == spiderman.getFBody()) && (cuerpo2 == duende.getFBody())) || ((cuerpo2 == spiderman.getFBody()) && (cuerpo1 == duende.getFBody()))) {
     println("golpe!");
   }
 }
 
 
-//--------------------------------------------------------------------------------------------------------------------------------FUNCIONES AUXILIARES
-float nuevoAlto(PImage img, float ancho) {    //mantener proporción de imagen
-  return ancho*img.height/img.width;
-}
-
-
 //--------------------------------------------------------------------------------------------------------------------------------DEBUG
 void mouseClicked() {
-  tela.aplicarJoint();          //** ESTO TENDRÍA QUE ACTIVARSE CON EL OSC 
+  tela.aplicarJoint();          //** ESTO TENDRÍA QUE ACTIVARSE CON EL OSC
 }
 void keyPressed() {
   if (key == ' ') {
@@ -199,4 +208,8 @@ void keyPressed() {
     pantalla++;
   }
   pantalla = constrain(pantalla, 0, 3);
+}
+
+float nuevoAlto(PImage img, float ancho) {    //mantener proporción de imagen
+  return ancho*img.height/img.width;
 }
