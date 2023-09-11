@@ -12,7 +12,6 @@ FWorld mundo;
 //------------------------------------------------------------------------------------------CUERPOS CON GRAVEDAD
 ArrayList<FBody> cuerposG;
 Spiderman spiderman;
-ArrayList<Bomba> bombas;
 
 float gravedad;
 
@@ -49,7 +48,8 @@ void setup() {
   rectMode(CENTER);
 
   pantalla = JUEGO;      //ESTO DEBERÍA ESTAR EN EL MENU
-  debug = true;          //ESTO DEBERÍA ESTAR EN FALSE
+  debug = false;          //ESTO DEBERÍA ESTAR EN FALSE
+
   cursorD = 50;        //distancia mínima entre el cursor y el gancho para hacer el vínculo
 
   //------------------------------------------------------------------------------------------------------------IMÁGENES
@@ -70,8 +70,6 @@ void setup() {
   cuerposG = new ArrayList<FBody>();
   spiderman = new Spiderman();
 
-  bombas = new ArrayList<Bomba>();
-
   //------------------------------------------------------------------------------------------CUERPOS SIN GRAVEDAD
   cuerposSinG = new ArrayList<FBody>();
   duende = new Duende();
@@ -86,8 +84,15 @@ void setup() {
   ganchos.add(new Gancho(width*4/6, height/3));
   ganchos.add(new Gancho(width*2/6, height*2/4));
 
-  //------------------------------------------------------------------------TELARAÑA
   tela = new Telarania();
+
+  //------------------------------------------------------------------------PROPIEDADES GENERALES
+  for (int i=0; i<cuerposG.size(); i++) {        //que no sean agarrables
+    cuerposG.get(i).setGrabbable(false);
+  }
+  for (int i=0; i<cuerposSinG.size(); i++) {
+    cuerposSinG.get(i).setGrabbable(false);
+  }
 }
 
 
@@ -96,12 +101,6 @@ void draw() {
   background(180);
 
   //------------------------------------------------------------------------------------------------------------CÁLCULOS GENERALES
-  for (int i=0; i<cuerposG.size(); i++) {          //que no sean agarrables por las dudas
-    cuerposG.get(i).setGrabbable(false);
-  }
-  for (int i=0; i<cuerposSinG.size(); i++) {
-    cuerposSinG.get(i).setGrabbable(false);
-  }
 
   //------------------------------------------------------------------------------------------ACTUALIZAR CURSOR
   cursorX = mouseX;
@@ -140,13 +139,11 @@ void draw() {
     for (int i=0; i<ganchos.size(); i++) {
       ganchos.get(i).dibujar();
     }
-    for (int i=0; i<bombas.size(); i++) {
-      bombas.get(i).dibujar();
-    }
   }
 
 
   //------------------------------------------------------------------------------------------------------------DIBUJOS GENERALES
+
   //------------------------------------------------------------------------------------------DIBUJAR CURSOR
   push();
   translate(cursorX, cursorY);
@@ -160,17 +157,17 @@ void draw() {
   if (debug) {
     textAlign(LEFT, CENTER);
     textSize(20);
-    text(pantalla, 25, 25);
+    text(pantalla, 25, 25);                                            //mostrar pantalla en pantalla (?
 
-    for (int i=0; i<cuerposG.size(); i++) {
+    for (int i=0; i<cuerposG.size(); i++) {                    //hacer visibles los FBody
       cuerposG.get(i).setStroke(0);
     }
     for (int i=0; i<cuerposSinG.size(); i++) {
       cuerposSinG.get(i).setStroke(0);
     }
-    println("mouse: "+mouseX+" ; "+mouseY);
+    println("cursor: "+cursorX+" ; "+cursorY);                //mostrar coords del cursor
   } else {
-    for (int i=0; i<cuerposG.size(); i++) {
+    for (int i=0; i<cuerposG.size(); i++) {                //ocultar los FBody
       cuerposG.get(i).setNoStroke();
       cuerposG.get(i).setNoFill();
     }
@@ -186,7 +183,8 @@ void contactStarted(FContact contacto) {
   FBody cuerpo1 = contacto.getBody1();
   FBody cuerpo2 = contacto.getBody2();
 
-  if (((cuerpo1 == spiderman.getFBody()) && (cuerpo2 == duende.getFBody())) || ((cuerpo2 == spiderman.getFBody()) && (cuerpo1 == duende.getFBody()))) {
+  if (((cuerpo1 == spiderman.getFBody()) && (cuerpo2 == duende.getFBody()))            //colisión entre Spiderman y Duende
+    || ((cuerpo2 == spiderman.getFBody()) && (cuerpo1 == duende.getFBody()))) {
     println("golpe!");
   }
 }
