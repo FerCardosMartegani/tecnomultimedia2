@@ -1,5 +1,5 @@
-/**
- TP1 Comisión Lisandro - Fernando Cardos, Clara Rovarino, Elian Rodriguez, Luca Vasquez
+/*
+ TP1 Comisión Lisandro - Fernando Cardos, Clara Rovarino, Elian Rodriguez
  */
 
 
@@ -12,6 +12,7 @@ FWorld mundo;
 //------------------------------------------------------------------------------------------CUERPOS CON GRAVEDAD
 ArrayList<FBody> cuerposG;
 Spiderman spiderman;
+ArrayList<Bomba> bombas;
 
 float gravedad;
 
@@ -64,11 +65,10 @@ void setup() {
   mundo.setEdges();
   mundo.setGravity(0, 0);
 
-  gravedad = 1250;
-
   //------------------------------------------------------------------------------------------CUERPOS CON GRAVEDAD
   cuerposG = new ArrayList<FBody>();
   spiderman = new Spiderman();
+  bombas = new ArrayList<Bomba>();
 
   //------------------------------------------------------------------------------------------CUERPOS SIN GRAVEDAD
   cuerposSinG = new ArrayList<FBody>();
@@ -78,6 +78,8 @@ void setup() {
   plataformas = new ArrayList<Plataforma>();
   plataformas.add(new Plataforma(width/2, height/2+100, 200, 50, 45));
   plataformas.add(new Plataforma(width*4/6, height-200, 200, 10, 0));
+
+  plataformas.add(new Plataforma(spiderman.posX, spiderman.posY+50, 200, 10, 0));
 
   //------------------------------------------------------------------------GANCHOS (posX, posY)
   ganchos = new ArrayList<Gancho>();
@@ -121,16 +123,19 @@ void draw() {
     mundo.step();
     mundo.draw();
 
-    for (int i=0; i<cuerposG.size(); i++) {              //gravedad falsa
+    for (int i=0; i<cuerposG.size(); i++) {              //gravedad falsa (F=m*g)
+      gravedad = (cuerposG.get(i).getMass() * 750);
       cuerposG.get(i).addForce(0, gravedad);
     }
 
     tela.actualizarJoint();
     tela.dibujar();
 
+    spiderman.recuperar();
     spiderman.dibujar();
 
     duende.mover();
+    duende.recuperar();
     duende.dibujar();
 
     for (int i=0; i<plataformas.size(); i++) {
@@ -139,6 +144,34 @@ void draw() {
     for (int i=0; i<ganchos.size(); i++) {
       ganchos.get(i).dibujar();
     }
+    for (int i=0; i<bombas.size(); i++) {
+      bombas.get(i).dibujar();
+      bombas.get(i).cuentaAtras();
+    }
+    golpeBomba();                                  //colisión con las bombas (con Contact() tiraba error)
+
+    if (spiderman.vida <= 0) {        //perder cuando Spiderman se queda sin vidas
+      pantalla=PERDER;
+    }
+    if (duende.vida <= 0) {        //ganar cuando el Duende se queda sin vidas
+      pantalla=GANAR;
+    }
+  }
+  //------------------------------------------------------------------------------------------GANAR
+  else if (pantalla == GANAR) {
+    background(230, 50, 50);
+    push();
+    textSize(64);
+    text("UwU", width/2, height/2);
+    pop();
+  }
+  //------------------------------------------------------------------------------------------PERDER
+  else if (pantalla == PERDER) {
+    background(0, 50, 50);
+    push();
+    textSize(64);
+    text("F", width/2, height/2);
+    pop();
   }
 
 
@@ -178,15 +211,46 @@ void draw() {
   }
 }
 
+
+void imagen(PImage img, float x, float y, float ancho) {
+  image(img, x, y, ancho, nuevoAlto(img, ancho));
+}
+
+
 //--------------------------------------------------------------------------------------------------------------------------------COLISIONES
 void contactStarted(FContact contacto) {
-  FBody cuerpo1 = contacto.getBody1();
-  FBody cuerpo2 = contacto.getBody2();
-
-  if (((cuerpo1 == spiderman.getFBody()) && (cuerpo2 == duende.getFBody()))            //colisión entre Spiderman y Duende
-    || ((cuerpo2 == spiderman.getFBody()) && (cuerpo1 == duende.getFBody()))) {
+  if (contactados(contacto, spiderman, duende) && !duende.golpeado) {            //colisión entre Spiderman y Duende
     println("golpe!");
+    duende.recibirGolpe();
   }
+
+  /*-------------------------------------------------tiraba error
+   for (int i=0; i<bombas.size(); i++) {
+   if (contactados(contacto, spiderman, bombas.get(i)) && !bombas.get(i).explotada) {            //colisión entre Spiderman y bomba
+   println("boom!");
+   bombas.get(i).explotar();
+   }
+   }
+   */
+}
+void golpeBomba() {                                                                              //colisión entre Spiderman y bomba
+  for (int i=0; i<bombas.size(); i++) {
+    float dist = dist(bombas.get(i).posX, bombas.get(i).posY, spiderman.posX, spiderman.posY);
+    float min = (bombas.get(i).tam + spiderman.tam);
+    if (dist < min) {
+      println("boom!");
+      bombas.get(i).explotar();
+      spiderman.recibirGolpe();
+    }
+  }
+}
+boolean contactados(FContact c, FBodyPlus c1, FBodyPlus c2) {      //función que simplifica las condiciones de colisión
+  FBody cuerpo1 = c.getBody1();
+  FBody cuerpo2 = c.getBody2();
+  FBody plus1 = c1.getFBody();
+  FBody plus2 = c2.getFBody();
+
+  return (((cuerpo1 == plus1) && (cuerpo2 == plus2)) || ((cuerpo2 == plus1) && (cuerpo1 == plus2)));
 }
 
 
