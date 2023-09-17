@@ -43,7 +43,7 @@ int PERDER = 3;
 
 //--------------------------------------------------------------------------------------------------------------------------------SETUP
 void setup() {
-  size(1200, 900);
+  size(960, 720);
   colorMode(HSB, 360, 100, 100, 100);
   imageMode(CENTER);
   rectMode(CENTER);
@@ -51,7 +51,8 @@ void setup() {
   pantalla = JUEGO;      //ESTO DEBERÍA ESTAR EN EL MENU
   debug = false;          //ESTO DEBERÍA ESTAR EN FALSE
 
-  cursorD = 50;        //distancia mínima entre el cursor y el gancho para hacer el vínculo
+  cursorD = 50;        //distancia mínima entre el cursor y el gancho para hacer el joint
+  cursorT = 75;        //tamaño del cursor
 
   //------------------------------------------------------------------------------------------------------------IMÁGENES
   cursorImg = loadImage("telaraña.png");
@@ -80,6 +81,7 @@ void setup() {
   plataformas.add(new Plataforma(width*4/6, height-200, 200, 10, 0));
 
   plataformas.add(new Plataforma(spiderman.posX, spiderman.posY+50, 200, 10, 0));
+  plataformas.add(new Plataforma(width-100, spiderman.posY+50, 50, 20, -60));
 
   //------------------------------------------------------------------------GANCHOS (posX, posY)
   ganchos = new ArrayList<Gancho>();
@@ -95,6 +97,9 @@ void setup() {
   for (int i=0; i<cuerposSinG.size(); i++) {
     cuerposSinG.get(i).setGrabbable(false);
   }
+
+  //------------------------------------------------------------------------------------------------------------OSC
+  configurarOsc();
 }
 
 
@@ -102,12 +107,7 @@ void setup() {
 void draw() {
   background(180);
 
-  //------------------------------------------------------------------------------------------------------------CÁLCULOS GENERALES
-
-  //------------------------------------------------------------------------------------------ACTUALIZAR CURSOR
-  cursorX = mouseX;
-  cursorY = mouseY;
-  cursorT = 75;                      //TAMAÑO DEL CURSOR
+  calcularOsc();
 
 
   //------------------------------------------------------------------------------------------------------------PANTALLAS
@@ -115,6 +115,11 @@ void draw() {
   //------------------------------------------------------------------------------------------MENÚ
   if (pantalla == MENU) {
     background(45, 75, 75);    //**ACÁ TENDRÍA QUE ESTAR LA IMAGEN DEL FONDO
+    push();
+    textSize(64);
+    textAlign(CENTER, CENTER);
+    text("Spider-mano :0", width/2, height/2);
+    pop();
   }
   //------------------------------------------------------------------------------------------JUEGO
   else if (pantalla == JUEGO) {
@@ -185,7 +190,6 @@ void draw() {
   image(cursorImg, 0, 0, cursorT, cursorT);
   pop();
 
-
   //------------------------------------------------------------------------------------------DEBUG
   if (debug) {
     textAlign(LEFT, CENTER);
@@ -198,6 +202,9 @@ void draw() {
     for (int i=0; i<cuerposSinG.size(); i++) {
       cuerposSinG.get(i).setStroke(0);
     }
+
+    debugOsc();
+
     println("cursor: "+cursorX+" ; "+cursorY);                //mostrar coords del cursor
   } else {
     for (int i=0; i<cuerposG.size(); i++) {                //ocultar los FBody
@@ -211,9 +218,11 @@ void draw() {
   }
 }
 
-
 void imagen(PImage img, float x, float y, float ancho) {
   image(img, x, y, ancho, nuevoAlto(img, ancho));
+}
+float nuevoAlto(PImage img, float ancho) {    //mantener proporción de imagen
+  return ancho*img.height/img.width;
 }
 
 
@@ -223,7 +232,6 @@ void contactStarted(FContact contacto) {
     println("golpe!");
     duende.recibirGolpe();
   }
-
   /*-------------------------------------------------tiraba error
    for (int i=0; i<bombas.size(); i++) {
    if (contactados(contacto, spiderman, bombas.get(i)) && !bombas.get(i).explotada) {            //colisión entre Spiderman y bomba
@@ -254,24 +262,28 @@ boolean contactados(FContact c, FBodyPlus c1, FBodyPlus c2) {      //función qu
 }
 
 
+//--------------------------------------------------------------------------------------------------------------------------------RESET
+void reset() {
+}
+
+
 //--------------------------------------------------------------------------------------------------------------------------------DEBUG
-void mouseClicked() {
+void mousePressed() {
   tela.aplicarJoint();          //** ESTO TENDRÍA QUE ACTIVARSE CON EL OSC
 }
+void mouseReleased() {
+  tela.soltarJoint();
+}
 void keyPressed() {
-  if (key == ' ') {
+  if (key == ' ') {                  //ESPACIO para activar/desactivar el debug
     debug = !debug;
-  }                  //ESPACIO para activar/desactivar el debug
+  }
 
-  if (keyCode == LEFT) {
+  if (keyCode == LEFT) {            //FLECHAS IZQUIERDA/DERECHA para pasar entre pantallas
     pantalla--;
-  }            //FLECHAS IZQUIERDA/DERECHA para pasar entre pantallas
+  }
   if (keyCode == RIGHT) {
     pantalla++;
   }
   pantalla = constrain(pantalla, 0, 3);
-}
-
-float nuevoAlto(PImage img, float ancho) {    //mantener proporción de imagen
-  return ancho*img.height/img.width;
 }

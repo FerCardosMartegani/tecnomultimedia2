@@ -238,7 +238,7 @@ class Bomba extends FBodyPlus {
   void explotar() {
     this.explotada = true;
     this.lanzada = false;
-    
+
     this.getFBody().setPosition(width/2, -height/2);      //--tira error con el Contact()
     this.getFBody().setStatic(true);      //--tira error con el Contact()
   }
@@ -450,7 +450,10 @@ class Telarania {
 
         this.enganchado = true;
       }
-    } else {
+    }
+  }
+  void soltarJoint() {
+    if (this.enganchado) {
       if (this.colgado) {                        //descolgarse
         this.tela.removeFromWorld();
       }
