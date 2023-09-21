@@ -226,6 +226,8 @@ class Duende extends Personaje {
 
     this.resetVidas();
     this.resetPos();
+    
+    this.getFBody().setSensor(true);
   }
 }
 
@@ -584,8 +586,8 @@ class Telarania {
       if (this.colgado) {                        //descolgarse
         this.telaJoint.removeFromWorld();
 
-        if (tutorial == 0) {
-          tutorial = 0.1;        //avanzar tutorial
+        if (etapasTuto == 0) {
+          etapasTuto = 0.1;        //avanzar tutorial
         }
       }
 

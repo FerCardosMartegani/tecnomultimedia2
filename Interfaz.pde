@@ -49,7 +49,10 @@ class Boton {
 
   void clic() {
     if (this.clicable) {
+      //clicBoton.play();
+      
       pantalla = this.link;      //ir a la pantalla del botón y reiniciar juego
+      etapasTuto = 0;
 
       tela.soltarJoint();
       spiderman.reset();

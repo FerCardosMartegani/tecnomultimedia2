@@ -27,12 +27,12 @@ Telarania tela;
 //------------------------------------------------------------------------------------------------------------CONTROL
 boolean debug, usarMouse;
 int pantalla;
-float tutorial, cursorX, cursorY, cursorT, cursorD;
+float etapasTuto, cursorX, cursorY, cursorT, cursorD;
 Boton[] botones;
 
 
 //------------------------------------------------------------------------------------------------------------IMÁGENES
-PImage cursorImg, titulo, victoria, derrota;
+PImage cursorImg, titulo, victoria, derrota, tutoClic, tutoLanzar, tutoSoltar, tutoCursor;
 PImage[] fondoImg, bombaImg, botonesImg, spidermanVida, duendeVida;
 PImage[][] spidermanImg, duendeImg;
 
@@ -43,6 +43,10 @@ int TUTO = 2;
 int REJUGAR = 3;
 int GANAR = 4;
 int PERDER = 5;
+
+//------------------------------------------------------------------------------------------------------------SONIDO
+import processing.sound.*;
+SoundFile clicBoton, musicaTuto, musicaJuego, lanzarTela, dañoSpiderman, dañoDuende, duendeEntra, explosion, ganar, perder;
 
 
 //--------------------------------------------------------------------------------------------------------------------------------SETUP
@@ -56,13 +60,18 @@ void setup() {
   cursorImg = loadImage("telaraña.png");
   titulo = loadImage("titulo.png");
 
+  tutoCursor = loadImage("cartelCursor.png");
+  tutoClic = loadImage("cartelClic.png");
+  tutoLanzar = loadImage("cartelLanzar.png");
+  tutoSoltar = loadImage("cartelSoltar.png");
+
+  victoria = loadImage("cartelGanar.png");
+  derrota = loadImage("cartelPerder.png");
+
   fondoImg = new PImage[2];
   for (int i=0; i<fondoImg.length; i++) {
     fondoImg[i] = loadImage("fondo"+i+".png");
   }
-
-  victoria = loadImage("cartelGanar.png");
-  derrota = loadImage("cartelPerder.png");
 
   botonesImg = new PImage[4];
   for (int i=0; i<botonesImg.length; i++) {
@@ -96,9 +105,10 @@ void setup() {
     bombaImg[i] = loadImage("bomba"+i+".png");
   }
 
+
   //------------------------------------------------------------------------------------------------------------CONTROL
   pantalla = MENU;
-  tutorial = 0;
+  etapasTuto = 0;
   debug = usarMouse = false;
 
   cursorD = 50;        //distancia mínima entre el cursor y el gancho para hacer el joint
@@ -162,6 +172,21 @@ void setup() {
 
   //------------------------------------------------------------------------------------------------------------OSC
   setupOsc();
+
+  //------------------------------------------------------------------------------------------------------------SONIDO
+  musicaTuto = new SoundFile(this, "musicaTuto.mp3");
+  musicaJuego = new SoundFile(this, "musicaPelea.mp3");
+
+  ganar = new SoundFile(this, "ganarSound.mp3");
+  perder = new SoundFile(this, "perderSound.mp3");
+
+  //clicBoton = new SoundFile(this, "botonSound.mp3");
+
+  //lanzarTela = new SoundFile(this, "telaSound.mp3");
+  //dañoSpiderman = new SoundFile(this, "dañoSpidermanSound.mp3");
+  //dañoDuende = new SoundFile(this, "dañoDuendeSound.mp3");
+  //duendeEntra = new SoundFile(this, "duendeEntraSound.mp3");
+  //explosion = new SoundFile(this, "explosionSound.mp3");
 }
 
 
@@ -174,11 +199,27 @@ void draw() {
 
   //------------------------------------------------------------------------------------------MENÚ
   if (pantalla == MENU) {
-    image(titulo, width/2, height*4/10);
+    image(titulo, width/2, height*3/10);
+    image(tutoClic, width/2, height*7/10);
+
+    if (!musicaTuto.isPlaying()) {
+      musicaTuto.loop();
+    }
   }
   //------------------------------------------------------------------------------------------JUEGO
   else if ((pantalla == JUEGO) || (pantalla == TUTO) || pantalla == REJUGAR) {
-    if ((tutorial == 0.1) && (spiderman.quieto())) {
+    if (!musicaTuto.isPlaying() && (pantalla != TUTO)) {
+      musicaTuto.loop();
+    }
+    if (pantalla != TUTO) {
+      musicaTuto.stop();
+      if (!musicaJuego.isPlaying() && (duende.posX < width)) {
+        //duendeEntra.play();
+        musicaJuego.loop();
+      }
+    }
+
+    if ((etapasTuto == 0.1) && (spiderman.quieto())) {
       pantalla = JUEGO;
     }
 
@@ -218,17 +259,21 @@ void draw() {
     if (spiderman.caerDelMundo()) {        //si spideran se cae del mundo...
       if (pantalla == TUTO) {
         spiderman.reset();            //...en el tuto, respawnea.
-        tutorial = 0;
+        etapasTuto = 0;
       } else {
         spiderman.vida = 0;          //...en el juego, muere.
       }
     }
     if (spiderman.vida <= 0) {        //perder cuando Spiderman se queda sin vidas o se cae del mundo
       pantalla=PERDER;
+      perder.play();
+      musicaJuego.stop();
     }
 
     if (duende.vida <= 0) {        //ganar cuando el Duende se queda sin vidas
       pantalla=GANAR;
+      ganar.play();
+      musicaJuego.stop();
     }
   }
   //------------------------------------------------------------------------------------------GANAR
