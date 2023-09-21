@@ -4,6 +4,7 @@ OscP5 receptor;
 OscProperties propiedades;
 
 float[][] dedoMedio, dedoAnular;
+float[][] palma;
 boolean gestoDeAgarre;
 
 int nodoX = 0;
@@ -16,13 +17,16 @@ float handpose0X = 100;
 float handposeHeight = 350;
 float handpose0Y = 150;
 
+float palmaCentro = height*2;
+
 
 //--------------------------------------------------------------------------------------------------------------------------------SETUP
-void configurarOsc() {
+void setupOsc() {
   receptor = new OscP5(this, 8008);
 
   dedoMedio = new float[2][2];    //nodo - coord
   dedoAnular = new float[2][2];
+  palma = new float[2][2];
 
   gestoDeAgarre = false;
 }
@@ -30,17 +34,22 @@ void configurarOsc() {
 
 //--------------------------------------------------------------------------------------------------------------------------------CÁLCULOS
 void calcularOsc() {
-  cursorX = constrain(dedoMedio[nodoBase][nodoX], 0, width);      //mover el cursor a la mano del usuario
-  cursorY = constrain(dedoMedio[nodoBase][nodoY], 0, height);
+  if (!usarMouse) {
+    cursorX = constrain(palma[nodoPunta][nodoX], 0, width);      //mover el cursor a la mano del usuario
+    cursorY = constrain(palma[nodoPunta][nodoY], 0, height);
 
-  if ((dedoMedio[nodoPunta][nodoY] > dedoMedio[nodoBase][nodoY]) || (dedoAnular[nodoPunta][nodoY] > dedoAnular[nodoBase][nodoY])) {
-    if (!gestoDeAgarre) {
-      tela.aplicarJoint();                  //hacer "click" al hacer el gesto de Spiderman
-      gestoDeAgarre = true;
+    if ((dedoMedio[nodoPunta][nodoY] > dedoMedio[nodoBase][nodoY]) || (dedoAnular[nodoPunta][nodoY] > dedoAnular[nodoBase][nodoY])) {
+      if (!gestoDeAgarre) {
+        hacerClic();                  //hacer "click" al hacer el gesto de Spiderman
+        gestoDeAgarre = true;
+      }
+    } else {
+      soltarClic();
+      gestoDeAgarre = false;                    //soltar al abrir la mano
     }
   } else {
-    tela.soltarJoint();
-    gestoDeAgarre = false;                    //soltar al abrir la mano
+    cursorX = mouseX;                  //mover el cursor al mouse
+    cursorY = mouseY;
   }
 }
 
@@ -59,32 +68,46 @@ void debugOsc() {
   ellipse(dedoMedio[nodoBase][nodoX], dedoMedio[nodoBase][nodoY], tam, tam);          //dibujar dedo medio
   ellipse(dedoMedio[nodoPunta][nodoX], dedoMedio[nodoPunta][nodoY], tam, tam);
   line(dedoMedio[nodoBase][nodoX], dedoMedio[nodoBase][nodoY], dedoMedio[nodoPunta][nodoX], dedoMedio[nodoPunta][nodoY]);
+
+  ellipse(palma[nodoBase][nodoX], palma[nodoBase][nodoY], tam, tam);                    //dibujar palma
+  ellipse(palma[nodoPunta][nodoX], palma[nodoPunta][nodoY], tam, tam);
+  line(palma[nodoBase][nodoX], palma[nodoBase][nodoY], dedoAnular[nodoBase][nodoX], dedoAnular[nodoBase][nodoY]);
+  line(palma[nodoBase][nodoX], palma[nodoBase][nodoY], dedoMedio[nodoBase][nodoX], dedoMedio[nodoBase][nodoY]);
+  line(dedoAnular[nodoBase][nodoX], dedoAnular[nodoBase][nodoY], dedoMedio[nodoBase][nodoX], dedoMedio[nodoBase][nodoY]);
   pop();
 }
 
 
 //--------------------------------------------------------------------------------------------------------------------------------RECEPCIÓN
 void oscEvent(OscMessage mensaje) {
-  if (mensaje.addrPattern().equals("/annotations/ringFinger")) {
-    dedoAnular[nodoBase][nodoX] = getNodo(mensaje, 0, nodoX);        //ubicar la base del dedo anular
-    dedoAnular[nodoBase][nodoY] = getNodo(mensaje, 1, nodoY);
+  if (mensaje.addrPattern().equals("/annotations/palmBase")) {
+    palma[nodoBase][nodoX] = getNodo(mensaje, nodoX);          //ubicar la palma
+    palma[nodoBase][nodoY] = getNodo(mensaje, nodoY);
+    
+    palma[nodoPunta][nodoX] = palma[nodoBase][nodoX];
+    palma[nodoPunta][nodoY] = palma[nodoBase][nodoY] - palmaCentro;
+  }
 
-    dedoAnular[nodoPunta][nodoX] = getNodo(mensaje, 9, nodoX);        //ubicar la punta del dedo anular
-    dedoAnular[nodoPunta][nodoY] = getNodo(mensaje, 10, nodoY);
+  if (mensaje.addrPattern().equals("/annotations/ringFinger")) {
+    dedoAnular[nodoBase][nodoX] = getNodo(mensaje, nodoX);        //ubicar la base del dedo anular
+    dedoAnular[nodoBase][nodoY] = getNodo(mensaje, nodoY);
+
+    dedoAnular[nodoPunta][nodoX] = getNodo(mensaje, nodoX+9);        //ubicar la punta del dedo anular
+    dedoAnular[nodoPunta][nodoY] = getNodo(mensaje, nodoY+9);
   }
 
   if (mensaje.addrPattern().equals("/annotations/middleFinger")) {
-    dedoMedio[nodoBase][nodoX] = getNodo(mensaje, 0, nodoX);          //ubicar la base del dedo medio
-    dedoMedio[nodoBase][nodoY] = getNodo(mensaje, 1, nodoY);
+    dedoMedio[nodoBase][nodoX] = getNodo(mensaje, nodoX);          //ubicar la base del dedo medio
+    dedoMedio[nodoBase][nodoY] = getNodo(mensaje, nodoY);
 
-    dedoMedio[nodoPunta][nodoX] = getNodo(mensaje, 9, nodoX);          //ubicar la punta del dedo medio
-    dedoMedio[nodoPunta][nodoY] = getNodo(mensaje, 10, nodoY);
+    dedoMedio[nodoPunta][nodoX] = getNodo(mensaje, nodoX+9);          //ubicar la punta del dedo medio
+    dedoMedio[nodoPunta][nodoY] = getNodo(mensaje, nodoY+9);
   }
 }
-float getNodo(OscMessage m, int i, int p) {
-  if (p == nodoX) {
-    return width-map(m.get(i).floatValue(), handpose0X, handposeWidth, 0, width);
+float getNodo(OscMessage m, int p) {
+  if (p%3 == 0) {
+    return width-map(m.get(p).floatValue(), handpose0X, handposeWidth, 0, width);
   } else {
-    return map(m.get(i).floatValue(), handpose0Y, handposeHeight, 0, height);
+    return map(m.get(p).floatValue(), handpose0Y, handposeHeight, 0, height);
   }
 }

@@ -2,8 +2,9 @@
 class FBodyPlus {
 
   //------------------------------------------------------------------------------------------------------------DECLARACIÓN
-  float posX, posY, tamX, tamY, tam;
-  int index;
+  float posX, posY, tamX, tamY, tam, posXog, posYog;
+  int bodyIndex;
+  int plusIndex;
 
   boolean conGravedad;
   boolean SinG = false;
@@ -14,7 +15,7 @@ class FBodyPlus {
   void crearCuerpo(boolean G, FBody cuerpo) {        //agregar nuevo cuerpo con o sin gravedad
     this.conGravedad = G;
     this.getArray().add(cuerpo);
-    this.index = getArray().size()-1;
+    this.bodyIndex = getArray().size()-1;
 
     this.getFBody().setPosition(this.posX, this.posY);
     mundo.add(this.getFBody());
@@ -27,6 +28,10 @@ class FBodyPlus {
     this.posY = this.getFBody().getY();
   }
 
+  boolean caerDelMundo() {
+    return ((this.posX <= 0) || (this.posX >= width) || (this.posY >= height));
+  }
+
 
   //------------------------------------------------------------------------------------------------------------CUERPO FÍSICO
   ArrayList<FBody> getArray() {              //saber en qué arreglo está (con o sin gravedad)
@@ -37,13 +42,24 @@ class FBodyPlus {
     }
   }
   FBody getFBody() {
-    return getArray().get(this.index);      //acceder al cuerpo físico
+    return getArray().get(this.bodyIndex);      //acceder al cuerpo físico
+  }
+
+  void resetPos() {
+    this.getFBody().setPosition(this.posXog, this.posYog);
+    this.getFBody().setRotation(radians(0));
+    this.getFBody().setVelocity(0, 0);
+    this.getFBody().setAngularVelocity(0);
   }
 }
 
 class Personaje extends FBodyPlus {
-  float vida, vidaMax, tiempoGolpe, delayGolpe;
+  int vida, vidaMax;
+  float tiempoGolpe, delayGolpe;
   boolean golpeado;
+  int sprite, mirar;
+  int IZQ = 0;
+  int DER = 1;
 
   void recibirGolpe() {
     if (!this.golpeado) {
@@ -51,7 +67,7 @@ class Personaje extends FBodyPlus {
       this.vida--;
     }
   }
-  void recuperar() {
+  void cooldown() {
     if (this.golpeado) {
       this.tiempoGolpe++;
       float delayFixed = this.delayGolpe*frameRate;            //breve tiempo de ser invulnerable tras un golpe
@@ -60,6 +76,12 @@ class Personaje extends FBodyPlus {
         this.tiempoGolpe = 0;
       }
     }
+  }
+
+  void resetVidas() {
+    this.vida = this.vidaMax;
+    this.tiempoGolpe = 0;
+    this.golpeado = false;
   }
 }
 
@@ -70,21 +92,24 @@ class Personaje extends FBodyPlus {
 //--------------------------------------------------------------------------------------------------------------------------------DUENDE
 class Duende extends Personaje {
   //------------------------------------------------------------------------------------------------------------DECLARACIÓN
-  float vel, direc, margen, posYfija, tiempoMov, delayMov;
+  float vel, direc, direcOg, margen, tiempoMov, delayMov;
   boolean bombaLanzada;
+
+  int IDLE = 0;
+  int LANZAR = 1;
 
 
   //------------------------------------------------------------------------------------------------------------CONSTRUCTOR
-  Duende() {
+  Duende(float x, float y) {
     //------------------------------------------------------------------------------------------PROPIEDADES INICIALES
-    this.posX = width/2;                  //posición inicial
-    this.posY = posYfija = height/8;
+    this.posX = this.posXog = x;                  //posición inicial
+    this.posY = this.posYog = y;
     this.tam = 75;                        //tamaño para la colisión
 
     this.vel = 200;              //velocidad
 
     this.margen = width/8;          //distancia a los bordes donde frena para lanzar bombas
-    this.direc = +1;                  //dirección a la que arranca mirando
+    this.direc = direcOg = -1;                  //dirección a la que arranca mirando (-1,1)
 
     this.vida = this.vidaMax = 3;        //máximo de vida
 
@@ -96,8 +121,12 @@ class Duende extends Personaje {
 
     this.bombaLanzada = this.golpeado = false;
 
+    this.sprite = IDLE;
+    this.mirar = IZQ;
+
     //------------------------------------------------------------------------------------------CUERPO FÍSICO
     this.crearCuerpo(SinG, new FCircle(this.tam));
+    this.getFBody().setSensor(true);
   }
 
 
@@ -107,21 +136,43 @@ class Duende extends Personaje {
   void dibujar() {
     this.actualizarPos();
 
-    push();                                        //mostrar imagen
-    imagen(duendeImg[0], this.posX, this.posY, this.tam*1.5);
+    push();
+    if (!this.bombaLanzada) {                //cambiar imagen
+      this.sprite = IDLE;
+      if (this.direc == -1) {
+        this.mirar = IZQ;
+      } else if (this.direc == +1) {
+        this.mirar = DER;
+      }
+    } else {
+      this.sprite = LANZAR;
+    }
+    if (this.golpeado) {      //enrojecer por el daño
+      tint(0, 100, 100);
+    }
+
+    imagen(duendeImg[this.sprite][this.mirar], this.posX, this.posY, this.tam*1.5);         //mostrar imagen
+
+    imagen(duendeVida[constrain(this.vida-1, 0, duendeVida.length)], width*1/10, height*0.5/10, width*2/10);
     pop();
 
-    push();                                        //mostrar vidas    //ESTO TENDRÍA QUE SER DE OTRA FORMA
-    textSize(24);
-    text(int(this.vida)+"/"+int(this.vidaMax), this.posX+50, this.posY-50);
-    pop();
+    if (debug) {
+      push();                                        //mostrar vidas (rústico)
+      textSize(24);
+      text(int(this.vida)+"/"+int(this.vidaMax), this.posX+50, this.posY-50);
+      pop();
+    }
   }
 
   //------------------------------------------------------------------------------------------ACCIONES
   void mover() {
-    this.getFBody().setVelocity(this.getFBody().getVelocityX(), (this.posYfija-this.posY)*10);    //mantener en la misma línea
+    this.getFBody().setVelocity(this.getFBody().getVelocityX(), (this.posYog-this.posY)*10);    //mantener en la misma línea
 
     this.getFBody().setVelocity(this.direc*this.vel, this.getFBody().getVelocityY());      //desplazar izquierda y derecha
+
+    if ((this.posX < width) && (this.posX > 0)) {
+      this.getFBody().setSensor(false);
+    }
 
     boolean bordeIzq = (this.posX < 0+this.margen);
     boolean bordeDer = (this.posX > width-this.margen);
@@ -133,9 +184,11 @@ class Duende extends Personaje {
       this.tiempoMov++;
       float delayFixed = this.delayMov*frameRate;
       if ((this.tiempoMov >= delayFixed/2) && !this.bombaLanzada) {      //lanzar bomba
-        this.lanzarBomba();
+        if (!this.golpeado) {
+          this.lanzarBomba();
+        }
       }
-      if ((this.tiempoMov >= delayFixed) && this.bombaLanzada) {        //volver a moverse en dirección contraria
+      if ((this.tiempoMov >= delayFixed)) {        //volver a moverse en dirección contraria
         if (bordeIzq) {
           this.direc = +1;
         }
@@ -164,6 +217,16 @@ class Duende extends Personaje {
     }
     this.bombaLanzada = true;
   }
+
+  void reset() {
+    this.direc = this.direcOg;
+    this.tiempoMov = 0;
+    this.getFBody().setStatic(false);
+    this.bombaLanzada = false;
+
+    this.resetVidas();
+    this.resetPos();
+  }
 }
 
 
@@ -173,7 +236,7 @@ class Duende extends Personaje {
 //--------------------------------------------------------------------------------------------------------------------------------BOMBAS
 class Bomba extends FBodyPlus {
   //------------------------------------------------------------------------------------------------------------DECLARACIÓN
-  float radio, tiempo, delay;
+  float tiempo, delay;
   boolean explotada, lanzada;
 
 
@@ -184,11 +247,12 @@ class Bomba extends FBodyPlus {
     this.posY = y;
     this.tam = 50;          //tamaño para las colisiones
 
-    this.radio = this.tam*3;      //radio de la explosión
     this.explotada = this.lanzada = false;
 
     this.delay = 4;        //tiempo (en segundos) que tarda la bomba en explotar
     this.tiempo = 0;
+
+    this.plusIndex = bombas.size()-1;
 
     //------------------------------------------------------------------------------------------CUERPO FÍSICO
     crearCuerpo(ConG, new FCircle(this.tam));
@@ -230,7 +294,7 @@ class Bomba extends FBodyPlus {
   void cuentaAtras() {
     this.tiempo++;
     float delayFixed = this.delay*frameRate;
-    if ((this.tiempo >= delayFixed) && (!this.explotada)) {
+    if (((this.tiempo >= delayFixed) && (!this.explotada)) || this.caerDelMundo()) {
       this.explotar();
     }
   }
@@ -250,17 +314,28 @@ class Bomba extends FBodyPlus {
 
 //--------------------------------------------------------------------------------------------------------------------------------SPIDERMAN
 class Spiderman extends Personaje {
+  //------------------------------------------------------------------------------------------------------------DECLARACIÓN
+  int IDLE = 0;
+  int APUNTAR = 1;
+  int SALTAR = 2;
+  int COLGAR = 3;
+  int CAER = 4;
+
+
   //------------------------------------------------------------------------------------------------------------CONSTRUCTOR
-  Spiderman() {
+  Spiderman(float x, float y) {
     //------------------------------------------------------------------------------------------PROPIEDADES INICIALES
-    this.posX = width/2;          //posición inicial
-    this.posY = height/4;
+    this.posX = this.posXog = x;                  //posición inicial
+    this.posY = this.posYog = y;
     this.tam = 50;                //tamaño para la colisión
 
     this.vida = this.vidaMax = 3;      //máximo de vida
 
     this.delayGolpe = 3;                 //tiempo (en segundos) que tarda en poder recibir daño de nuevo
     this.tiempoGolpe = 0;
+
+    this.sprite = IDLE;
+    this.mirar = DER;
 
     //------------------------------------------------------------------------------------------CUERPO FÍSICO
     this.crearCuerpo(ConG, new FBox(this.tam, this.tam));
@@ -275,19 +350,50 @@ class Spiderman extends Personaje {
   void dibujar() {
     this.actualizarPos();        //actualizar posición
 
-    push();                                    //mostrar imagen
-    imagen(spidermanImg[0], this.posX, this.posY, this.tam*1.5);
+    push();
+    if (cursorX < this.posX) {      //espejar imagen mirando al cursor
+      this.mirar = IZQ;
+    } else {
+      this.mirar = DER;
+    }
+    if (this.golpeado) {      //enrojecer por el daño
+      tint(0, 100, 100);
+    }
+
+    if (this.quieto()) {
+      this.sprite = IDLE;
+    }
+    if (this.quieto() && tela.apuntando) {
+      this.sprite = APUNTAR;
+    }
+    if ((tela.enganchado && !tela.colgado) || this.cayendo()) {
+      this.sprite = SALTAR;
+    }
+    if (tela.colgado) {
+      this.sprite = COLGAR;
+    }
+
+    imagen(spidermanImg[this.sprite][this.mirar], this.posX, this.posY, this.tam*1.5);             //mostrar imagen
+
+    imagen(spidermanVida[constrain(this.vida-1, 0, spidermanVida.length)], width*9/10, height*0.5/10, width*2/10);
     pop();
 
-    push();                                        //mostrar vidas    //ESTO TENDRÍA QUE SER DE OTRA FORMA
-    textSize(24);
-    text(int(this.vida)+"/"+int(this.vidaMax), this.posX+50, this.posY-50);
-    pop();
+    if (debug) {
+      push();                                        //mostrar vidas    //ESTO TENDRÍA QUE SER DE OTRA FORMA
+      textSize(24);
+      text(int(this.vida)+"/"+int(this.vidaMax), this.posX+50, this.posY-50);
+      pop();
+    }
   }
 
   //------------------------------------------------------------------------------------------ACCIONES
   void saltar() {
     this.getFBody().addImpulse(0, -1000);        //saltar para engancharse si está parado
+  }
+
+  void reset() {
+    this.resetVidas();
+    this.resetPos();
   }
 
   //------------------------------------------------------------------------------------------CUERPO FÍSICO
@@ -310,16 +416,21 @@ class Spiderman extends Personaje {
 class Plataforma extends FBodyPlus {
   //------------------------------------------------------------------------------------------------------------DECLARACIÓN
   float rot;
+  boolean atravesable;
 
 
   //------------------------------------------------------------------------------------------------------------CONSTRUCTOR
-  Plataforma(float x, float y, float tx, float ty, float r) {      //FALTA AÑADIR UN PARÁMETRO PARA LA IMAGEN
+  Plataforma(float x, float y, float tx, float ty, float r, boolean a) {      //FALTA AÑADIR UN PARÁMETRO PARA LA IMAGEN
     //------------------------------------------------------------------------------------------PROPIEDADES INICIALES
     this.posX = x;            //posición inicial
     this.posY = y;
     this.tamX = tx;            //tamaño para la colisión
     this.tamY = ty;
     this.rot = radians(r);      //rotación
+
+    this.atravesable = a;
+
+    this.plusIndex = plataformas.size();
 
     //------------------------------------------------------------------------------------------CUERPO FÍSICO
     this.crearCuerpo(SinG, new FBox(this.tamX, this.tamY));
@@ -343,8 +454,22 @@ class Plataforma extends FBodyPlus {
       push();
       fill(0);
       textAlign(CENTER, CENTER);
-      text("p: "+this.index, this.posX, this.posY);      //mostrar índice
+      text("body: "+this.bodyIndex+"\nplat: "+this.plusIndex, this.posX, this.posY);      //mostrar índice
       pop();
+    }
+  }
+
+
+  //------------------------------------------------------------------------------------------ACCIONES
+  void cambiarContacto() {
+    if (this.atravesable) {
+      if (spiderman.posY < (this.posY-this.tamY/2)) {
+        this.getFBody().setSensor(false);
+      } else {
+        this.getFBody().setSensor(true);
+      }
+    } else {
+      this.getFBody().setSensor(false);
     }
   }
 }
@@ -361,6 +486,8 @@ class Gancho extends FBodyPlus {
     this.posX = x;
     this.posY = y;
 
+    this.plusIndex = ganchos.size();
+
     //------------------------------------------------------------------------------------------CUERPO FÍSICO
     crearCuerpo(SinG, new FCircle(1));
     this.getFBody().setStatic(true);
@@ -372,15 +499,11 @@ class Gancho extends FBodyPlus {
 
   //------------------------------------------------------------------------------------------DIBUJAR
   void dibujar() {
-    push();                                    //mostrar imagen
-    imagen(ganchoImg, this.posX, this.posY, 50);
-    pop();
-
     if (debug) {
       push();
       fill(0);
       textAlign(CENTER, CENTER);
-      text("g: "+this.index, this.posX, this.posY);        //mostrar índice
+      text("body: "+this.bodyIndex+"\ngan: "+this.plusIndex, this.posX, this.posY);        //mostrar índice
 
       noFill();
       ellipse(this.posX, this.posY, cursorD*2, cursorD*2);
@@ -399,12 +522,12 @@ class Telarania {
   float[] distancias;
   float distancia;
   int index;
-  boolean enganchado, colgado, ganchoSeleccionable;
-  FDistanceJoint tela;
+  boolean enganchado, colgado, apuntando;
+  FDistanceJoint telaJoint;
 
   //------------------------------------------------------------------------------------------------------------CONSTRUCTOR
   Telarania() {
-    this.enganchado = this.colgado = this.ganchoSeleccionable = false;
+    this.enganchado = this.colgado = this.apuntando = false;
     distancias = new float[ganchos.size()];
   }
 
@@ -412,13 +535,17 @@ class Telarania {
   //------------------------------------------------------------------------------------------------------------MÉTODOS
   void dibujar() {
     if ((distancias[this.index] <= cursorD) && !this.enganchado) {    //indicar posible telaraña
+      this.apuntando = true;
       push();
       stroke(360, 25);
       strokeWeight(5);
       line(ganchos.get(this.index).posX, ganchos.get(this.index).posY, spiderman.posX, spiderman.posY);
       pop();
+    } else {
+      this.apuntando = false;
     }
     if (this.enganchado) {            //mostrar telaraña lanzada
+      this.apuntando = false;
       push();
       stroke(360);
       strokeWeight(5);
@@ -455,7 +582,11 @@ class Telarania {
   void soltarJoint() {
     if (this.enganchado) {
       if (this.colgado) {                        //descolgarse
-        this.tela.removeFromWorld();
+        this.telaJoint.removeFromWorld();
+
+        if (tutorial == 0) {
+          tutorial = 0.1;        //avanzar tutorial
+        }
       }
 
       this.enganchado = this.colgado = false;
@@ -466,9 +597,9 @@ class Telarania {
     this.ubicarGanchos();
 
     if (this.enganchado && !this.colgado && (spiderman.puedeEnganchar())) {
-      this.tela = new FDistanceJoint(spiderman.getFBody(), ganchos.get(this.index).getFBody());
-      this.tela.setNoStroke();
-      this.tela.addToWorld(mundo);
+      this.telaJoint = new FDistanceJoint(spiderman.getFBody(), ganchos.get(this.index).getFBody());
+      this.telaJoint.setNoStroke();
+      this.telaJoint.addToWorld(mundo);
 
       this.colgado = true;
     }
