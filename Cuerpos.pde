@@ -226,7 +226,7 @@ class Duende extends Personaje {
 
     this.resetVidas();
     this.resetPos();
-    
+
     this.getFBody().setSensor(true);
   }
 }
@@ -238,8 +238,9 @@ class Duende extends Personaje {
 //--------------------------------------------------------------------------------------------------------------------------------BOMBAS
 class Bomba extends FBodyPlus {
   //------------------------------------------------------------------------------------------------------------DECLARACIÓN
-  float tiempo, delay;
-  boolean explotada, lanzada;
+  float tiempo, delay1, delay2;
+  boolean explotada, lanzada, consumida;
+  int sprite;
 
 
   //------------------------------------------------------------------------------------------------------------CONSTRUCTOR
@@ -249,9 +250,10 @@ class Bomba extends FBodyPlus {
     this.posY = y;
     this.tam = 50;          //tamaño para las colisiones
 
-    this.explotada = this.lanzada = false;
-
-    this.delay = 4;        //tiempo (en segundos) que tarda la bomba en explotar
+    this.explotada = this.lanzada = this.consumida = false;
+    
+    this.delay1 = 4;                          //tiempo (en segundos) que tarda la bomba en explotar
+    this.delay2 = this.delay1+1;               //tiempo (en segundos) que tarda la bomba en desaparecer
     this.tiempo = 0;
 
     this.plusIndex = bombas.size()-1;
@@ -274,30 +276,43 @@ class Bomba extends FBodyPlus {
   void dibujar() {
     this.actualizarPos();        //actualizar posición
 
-    if (!this.explotada) {
-      push();                                    //mostrar imagen (cuando no explotó)
-      fill(20, 100, 100);
-      ellipse(this.posX, this.posY, this.tam, this.tam);          //ESTO TENDRÍA QUE SER LA IMAGEN DE LA BOMBA
-      pop();
+    push();                                    //mostrar imagen (cuando no explotó)
+    //fill(20, 100, 100);
+    //ellipse(this.posX, this.posY, this.tam, this.tam);          //ESTO TENDRÍA QUE SER LA IMAGEN DE LA BOMBA
+    translate(this.posX, this.posY);
+    rotate(this.getFBody().getRotation());
+    if (explotada) {
+      if (!this.consumida) {
+        image(bombaImg[1], 0, 0);
+      }
+    } else {
+      image(bombaImg[0], 0, 0);
     }
+    pop();
   }
 
   //------------------------------------------------------------------------------------------ACCIONES
   void lanzar(float x, float y) {
     this.getFBody().setPosition(x, y);
     this.getFBody().setStatic(false);
+    this.getFBody().setSensor(false);
     this.getFBody().addImpulse(random(-1000, 1000), 0);    //aparecer con movimiento
 
     this.explotada = false;
     this.lanzada = true;
+    this.consumida = false;
     this.tiempo = 0;
   }
 
   void cuentaAtras() {
     this.tiempo++;
-    float delayFixed = this.delay*frameRate;
-    if (((this.tiempo >= delayFixed) && (!this.explotada)) || this.caerDelMundo()) {
+    float delay1Fixed = (this.delay1*frameRate);
+    if (((this.tiempo >= delay1Fixed-1) && (!this.explotada)) || this.caerDelMundo()) {
       this.explotar();
+    }
+    float delay2Fixed = (this.delay2*frameRate);
+    if (((this.tiempo >= delay2Fixed-1) && (!this.consumida))) {
+      this.consumida = true;
     }
   }
 
@@ -305,7 +320,7 @@ class Bomba extends FBodyPlus {
     this.explotada = true;
     this.lanzada = false;
 
-    this.getFBody().setPosition(width/2, -height/2);      //--tira error con el Contact()
+    this.getFBody().setSensor(true);
     this.getFBody().setStatic(true);      //--tira error con el Contact()
   }
 }
@@ -449,7 +464,7 @@ class Plataforma extends FBodyPlus {
     translate(this.posX, this.posY);
     rotate(this.rot);
     fill(360, 25);
-    rect(0, 0, this.tamX, this.tamY);        //ESTO TENDRÍA QUE SER ALGUNA IMAGEN
+    //rect(0, 0, this.tamX, this.tamY);        //ESTO TENDRÍA QUE SER ALGUNA IMAGEN
     pop();
 
     if (debug) {
@@ -587,7 +602,7 @@ class Telarania {
         this.telaJoint.removeFromWorld();
 
         if (etapasTuto == 0) {
-          etapasTuto = 0.1;        //avanzar tutorial
+          etapasTuto = 1;        //avanzar tutorial
         }
       }
 

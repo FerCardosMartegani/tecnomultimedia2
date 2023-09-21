@@ -208,7 +208,7 @@ void draw() {
   }
   //------------------------------------------------------------------------------------------JUEGO
   else if ((pantalla == JUEGO) || (pantalla == TUTO) || pantalla == REJUGAR) {
-    if (!musicaTuto.isPlaying() && (pantalla != TUTO)) {
+    if (!musicaTuto.isPlaying() && (pantalla == TUTO)) {
       musicaTuto.loop();
     }
     if (pantalla != TUTO) {
@@ -219,7 +219,7 @@ void draw() {
       }
     }
 
-    if ((etapasTuto == 0.1) && (spiderman.quieto())) {
+    if ((etapasTuto == 1) && (spiderman.quieto())) {
       pantalla = JUEGO;
     }
 
@@ -229,6 +229,13 @@ void draw() {
     for (int i=0; i<cuerposG.size(); i++) {              //gravedad falsa (F=m*g)
       gravedad = (cuerposG.get(i).getMass() * 750);
       cuerposG.get(i).addForce(0, gravedad);
+    }
+
+    if (pantalla == TUTO) {
+      float tutoTam = width*3/10;
+      imagen(tutoCursor, width/2, height*7/10, tutoTam);
+      imagen(tutoLanzar, width/2, height*5/10, tutoTam);
+      imagen(tutoSoltar, width/2, height*3/10, tutoTam);
     }
 
     tela.actualizarJoint();            //telaraña
@@ -247,14 +254,14 @@ void draw() {
       golpeBomba(i);                                  //colisión con las bombas (con Contact() tiraba error)
     }
 
-    spiderman.cooldown();            //spiderman
-    spiderman.dibujar();
-
     if (pantalla != TUTO) {
       duende.dibujar();
       duende.mover();                      //duende verde
       duende.cooldown();
     }
+
+    spiderman.cooldown();            //spiderman
+    spiderman.dibujar();
 
     if (spiderman.caerDelMundo()) {        //si spideran se cae del mundo...
       if (pantalla == TUTO) {
@@ -378,7 +385,7 @@ void contactStarted(FContact contacto) {
 void golpeBomba(int i) {                                                                              //colisión entre Spiderman y bomba
   float dist = dist(bombas.get(i).posX, bombas.get(i).posY, spiderman.posX, spiderman.posY);
   float r = (bombas.get(i).tam + spiderman.tam/2);
-  if (dist < r) {
+  if ((dist < r) && !bombas.get(i).explotada) {
     println("boom!");
     bombas.get(i).explotar();
     spiderman.recibirGolpe();
