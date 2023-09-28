@@ -63,7 +63,13 @@ class Personaje extends FBodyPlus {
 
   void recibirGolpe() {
     if (!this.golpeado) {
-      this.golpeado = true;                    //recibir patada aerea ninja giratoria de Spiderman
+      if (this.getFBody() == duende.getFBody()) {
+        golpeDuende.play();
+      } else if (this.getFBody() == spiderman.getFBody()) {
+        golpeSpiderman.play();
+      }
+
+      this.golpeado = true;                    //recibir golpe
       this.vida--;
     }
   }
@@ -150,10 +156,16 @@ class Duende extends Personaje {
     if (this.golpeado) {      //enrojecer por el daño
       tint(0, 100, 100);
     }
+    float vx=0, vy=0;
+    float delayFixed = this.delayGolpe*frameRate;            //sacudir un poco al recibir golpe
+    if ((this.golpeado) && (this.tiempoGolpe <= delayFixed/4)) {
+      vx = random(-5, 5);
+      vy = random(-5, 5);
+    }
 
-    imagen(duendeImg[this.sprite][this.mirar], this.posX, this.posY, this.tam*1.5);         //mostrar imagen
+    imagen(duendeImg[this.sprite][this.mirar], this.posX+vx, this.posY+vy, this.tam*1.5);         //mostrar imagen
 
-    imagen(duendeVida[constrain(this.vida-1, 0, duendeVida.length)], width*1/10, height*0.5/10, width*2/10);
+    imagen(duendeVida[constrain(this.vida-1, 0, duendeVida.length)], width*1/10+vx, height*0.5/10+vy, width*2/10);
     pop();
 
     if (debug) {
@@ -251,7 +263,7 @@ class Bomba extends FBodyPlus {
     this.tam = 50;          //tamaño para las colisiones
 
     this.explotada = this.lanzada = this.consumida = false;
-    
+
     this.delay1 = 4;                          //tiempo (en segundos) que tarda la bomba en explotar
     this.delay2 = this.delay1+1;               //tiempo (en segundos) que tarda la bomba en desaparecer
     this.tiempo = 0;
@@ -277,13 +289,12 @@ class Bomba extends FBodyPlus {
     this.actualizarPos();        //actualizar posición
 
     push();                                    //mostrar imagen (cuando no explotó)
-    //fill(20, 100, 100);
-    //ellipse(this.posX, this.posY, this.tam, this.tam);          //ESTO TENDRÍA QUE SER LA IMAGEN DE LA BOMBA
     translate(this.posX, this.posY);
     rotate(this.getFBody().getRotation());
-    if (explotada) {
+    if (this.explotada) {
       if (!this.consumida) {
-        image(bombaImg[1], 0, 0);
+        tint(360, map(this.tiempo, this.delay1*frameRate, this.delay2*frameRate, 100, 0));
+        image(bombaImg[1], random(-5, 5), random(-5, 5));
       }
     } else {
       image(bombaImg[0], 0, 0);
@@ -317,11 +328,25 @@ class Bomba extends FBodyPlus {
   }
 
   void explotar() {
-    this.explotada = true;
-    this.lanzada = false;
+    if (!this.explotada) {
+      if (this.lanzada) {
+        explosion.play();
+      }
 
-    this.getFBody().setSensor(true);
-    this.getFBody().setStatic(true);      //--tira error con el Contact()
+      this.explotada = true;
+      this.lanzada = false;
+      this.tiempo = this.delay1*frameRate;
+
+      this.getFBody().setSensor(true);
+      this.getFBody().setStatic(true);      //--tira error con el Contact()
+    }
+  }
+
+  void reset() {
+    this.explotada = this.lanzada = this.consumida = false;
+    this.tiempo = 0;
+    this.getFBody().setStatic(true);
+    this.getFBody().setPosition(-this.tam*2, -this.tam*2);
   }
 }
 
@@ -358,6 +383,7 @@ class Spiderman extends Personaje {
     this.crearCuerpo(ConG, new FBox(this.tam, this.tam));
     this.getFBody().setFriction(100);
     this.getFBody().setDensity(0.25);
+    this.getFBody().setRotatable(false);
   }
 
 
@@ -389,10 +415,16 @@ class Spiderman extends Personaje {
     if (tela.colgado) {
       this.sprite = COLGAR;
     }
+    float vx=0, vy=0;
+    float delayFixed = this.delayGolpe*frameRate;            //sacudir un poco al recibir golpe
+    if ((this.golpeado) && (this.tiempoGolpe <= delayFixed/4)) {
+      vx = random(-5, 5);
+      vy = random(-5, 5);
+    }
 
-    imagen(spidermanImg[this.sprite][this.mirar], this.posX, this.posY, this.tam*1.5);             //mostrar imagen
+    imagen(spidermanImg[this.sprite][this.mirar], this.posX+vx, this.posY+vy, this.tam*1.5);             //mostrar imagen
 
-    imagen(spidermanVida[constrain(this.vida-1, 0, spidermanVida.length)], width*9/10, height*0.5/10, width*2/10);
+    imagen(spidermanVida[constrain(this.vida-1, 0, spidermanVida.length)], width*9/10+vx, height*0.5/10+vy, width*2/10);
     pop();
 
     if (debug) {
@@ -556,6 +588,7 @@ class Telarania {
       push();
       stroke(360, 25);
       strokeWeight(5);
+      strokeCap(SQUARE);
       line(ganchos.get(this.index).posX, ganchos.get(this.index).posY, spiderman.posX, spiderman.posY);
       pop();
     } else {
@@ -566,6 +599,7 @@ class Telarania {
       push();
       stroke(360);
       strokeWeight(5);
+      strokeCap(SQUARE);
       line(ganchos.get(this.index).posX, ganchos.get(this.index).posY, spiderman.posX, spiderman.posY);
       pop();
     }
@@ -588,6 +622,8 @@ class Telarania {
   void aplicarJoint() {
     if (!this.enganchado) {                  //colgarse
       if (distancias[this.index] <= cursorD) {
+        lanzarTela.play();
+
         if (spiderman.quieto()) {
           spiderman.saltar();          //si spiderman está quieto, salta para tomar velocidad y altura
         }

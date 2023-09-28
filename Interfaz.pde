@@ -49,7 +49,7 @@ class Boton {
 
   void clic() {
     if (this.clicable) {
-      //clicBoton.play();
+      clicBoton.play();
       
       pantalla = this.link;      //ir a la pantalla del botón y reiniciar juego
       etapasTuto = 0;
@@ -58,7 +58,7 @@ class Boton {
       spiderman.reset();
       duende.reset();
       for (int i=0; i<bombas.size(); i++) {
-        bombas.get(i).explotar();
+        bombas.get(i).reset();
       }
     }
 

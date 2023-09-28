@@ -26,7 +26,7 @@ Telarania tela;
 
 //------------------------------------------------------------------------------------------------------------CONTROL
 boolean debug, usarMouse;
-int pantalla;
+int pantalla, prePantalla;
 float etapasTuto, cursorX, cursorY, cursorT, cursorD;
 Boton[] botones;
 
@@ -46,7 +46,7 @@ int PERDER = 5;
 
 //------------------------------------------------------------------------------------------------------------SONIDO
 import processing.sound.*;
-SoundFile clicBoton, musicaTuto, musicaJuego, lanzarTela, dañoSpiderman, dañoDuende, duendeEntra, explosion, ganar, perder;
+SoundFile clicBoton, musicaTuto, musicaJuego, lanzarTela, golpeSpiderman, golpeDuende, duendeEntra, explosion, ganar, perder;
 
 
 //--------------------------------------------------------------------------------------------------------------------------------SETUP
@@ -107,7 +107,7 @@ void setup() {
 
 
   //------------------------------------------------------------------------------------------------------------CONTROL
-  pantalla = MENU;
+  prePantalla = pantalla = MENU;
   etapasTuto = 0;
   debug = usarMouse = false;
 
@@ -177,16 +177,16 @@ void setup() {
   musicaTuto = new SoundFile(this, "musicaTuto.mp3");
   musicaJuego = new SoundFile(this, "musicaPelea.mp3");
 
-  ganar = new SoundFile(this, "ganarSound.mp3");
-  perder = new SoundFile(this, "perderSound.mp3");
+  ganar = new SoundFile(this, "sonidoGanar.mp3");
+  perder = new SoundFile(this, "sonidoPerder.mp3");
 
-  //clicBoton = new SoundFile(this, "botonSound.mp3");
+  clicBoton = new SoundFile(this, "sonidoBoton.wav");
 
-  //lanzarTela = new SoundFile(this, "telaSound.mp3");
-  //dañoSpiderman = new SoundFile(this, "dañoSpidermanSound.mp3");
-  //dañoDuende = new SoundFile(this, "dañoDuendeSound.mp3");
-  //duendeEntra = new SoundFile(this, "duendeEntraSound.mp3");
-  //explosion = new SoundFile(this, "explosionSound.mp3");
+  lanzarTela = new SoundFile(this, "sonidoTela.wav");
+  golpeSpiderman = new SoundFile(this, "sonidoDañoSpiderman.wav");
+  golpeDuende = new SoundFile(this, "sonidoDañoDuende.wav");
+  duendeEntra = new SoundFile(this, "sonidoDuende.wav");
+  explosion = new SoundFile(this, "sonidoExplosion.wav");
 }
 
 
@@ -214,11 +214,10 @@ void draw() {
     if (pantalla != TUTO) {
       musicaTuto.stop();
       if (!musicaJuego.isPlaying() && (duende.posX < width)) {
-        //duendeEntra.play();
+        duendeEntra.play();
         musicaJuego.loop();
       }
     }
-
     if ((etapasTuto == 1) && (spiderman.quieto())) {
       pantalla = JUEGO;
     }
@@ -233,9 +232,9 @@ void draw() {
 
     if (pantalla == TUTO) {
       float tutoTam = width*3/10;
-      imagen(tutoCursor, width/2, height*7/10, tutoTam);
+      imagen(tutoCursor, width/2, height*3/10, tutoTam);
       imagen(tutoLanzar, width/2, height*5/10, tutoTam);
-      imagen(tutoSoltar, width/2, height*3/10, tutoTam);
+      imagen(tutoSoltar, width/2, height*7/10, tutoTam);
     }
 
     tela.actualizarJoint();            //telaraña
@@ -357,6 +356,8 @@ void draw() {
       cuerposSinG.get(i).setNoFill();
     }
   }
+
+  prePantalla = pantalla;
 }
 
 void imagen(PImage img, float x, float y, float ancho) {
@@ -389,6 +390,7 @@ void golpeBomba(int i) {                                                        
     println("boom!");
     bombas.get(i).explotar();
     spiderman.recibirGolpe();
+    tela.soltarJoint();
   }
 }
 boolean contactados(FContact c, FBodyPlus c1, FBodyPlus c2) {      //función que simplifica las condiciones de colisión
@@ -407,10 +409,13 @@ void hacerClic() {
     pantalla = TUTO;
   }
 
-  tela.aplicarJoint();    //enganchar telaraña
-
-  for (int i=0; i<botones.length; i++) {      //pulsar botón
-    botones[i].clic();
+  if ((pantalla >= JUEGO) && (prePantalla == pantalla)) {
+    tela.aplicarJoint();    //enganchar telaraña
+  }
+  if (pantalla == GANAR || pantalla == PERDER) {
+    for (int i=0; i<botones.length; i++) {      //pulsar botón
+      botones[i].clic();
+    }
   }
 }
 void soltarClic() {

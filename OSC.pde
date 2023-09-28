@@ -5,7 +5,7 @@ OscProperties propiedades;
 
 float[][] dedoMedio, dedoAnular;
 float[][] palma;
-boolean gestoDeAgarre;
+boolean gestoDeSpiderman;
 
 int nodoX = 0;
 int nodoY = 1;
@@ -28,7 +28,7 @@ void setupOsc() {
   dedoAnular = new float[2][2];
   palma = new float[2][2];
 
-  gestoDeAgarre = false;
+  gestoDeSpiderman = false;
 }
 
 
@@ -39,13 +39,15 @@ void calcularOsc() {
     cursorY = constrain(palma[nodoPunta][nodoY], 0, height);
 
     if ((dedoMedio[nodoPunta][nodoY] > dedoMedio[nodoBase][nodoY]) || (dedoAnular[nodoPunta][nodoY] > dedoAnular[nodoBase][nodoY])) {
-      if (!gestoDeAgarre) {
+      if (!gestoDeSpiderman) {
         hacerClic();                  //hacer "click" al hacer el gesto de Spiderman
-        gestoDeAgarre = true;
+        gestoDeSpiderman = true;
       }
     } else {
-      soltarClic();
-      gestoDeAgarre = false;                    //soltar al abrir la mano
+      if (gestoDeSpiderman) {
+        soltarClic();
+        gestoDeSpiderman = false;                    //soltar al abrir la mano
+      }
     }
   } else {
     cursorX = mouseX;                  //mover el cursor al mouse
@@ -83,7 +85,7 @@ void oscEvent(OscMessage mensaje) {
   if (mensaje.addrPattern().equals("/annotations/palmBase")) {
     palma[nodoBase][nodoX] = getNodo(mensaje, nodoX);          //ubicar la palma
     palma[nodoBase][nodoY] = getNodo(mensaje, nodoY);
-    
+
     palma[nodoPunta][nodoX] = palma[nodoBase][nodoX];
     palma[nodoPunta][nodoY] = palma[nodoBase][nodoY] - palmaCentro;
   }
