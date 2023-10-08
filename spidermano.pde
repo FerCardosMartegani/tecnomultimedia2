@@ -46,7 +46,7 @@ int PERDER = 5;
 
 //------------------------------------------------------------------------------------------------------------SONIDO
 import processing.sound.*;
-SoundFile clicBoton, musicaTuto, musicaJuego, lanzarTela, golpeSpiderman, golpeDuende, duendeEntra, explosion, ganar, perder;
+SoundFile clicBoton, musicaTuto, musicaJuego, lanzarTela, soltarTela, golpeSpiderman, golpeDuende, duendeEntra, explosion, ganar, perder;
 
 
 //--------------------------------------------------------------------------------------------------------------------------------SETUP
@@ -175,7 +175,9 @@ void setup() {
 
   //------------------------------------------------------------------------------------------------------------SONIDO
   musicaTuto = new SoundFile(this, "musicaTuto.mp3");
+  musicaTuto.amp(0.25);
   musicaJuego = new SoundFile(this, "musicaPelea.mp3");
+  musicaJuego.amp(0.25);
 
   ganar = new SoundFile(this, "sonidoGanar.mp3");
   perder = new SoundFile(this, "sonidoPerder.mp3");
@@ -183,6 +185,7 @@ void setup() {
   clicBoton = new SoundFile(this, "sonidoBoton.wav");
 
   lanzarTela = new SoundFile(this, "sonidoTela.wav");
+  soltarTela = new SoundFile(this, "sonidoSoltarTela.wav");
   golpeSpiderman = new SoundFile(this, "sonidoDañoSpiderman.wav");
   golpeDuende = new SoundFile(this, "sonidoDañoDuende.wav");
   duendeEntra = new SoundFile(this, "sonidoDuende.wav");
@@ -393,7 +396,7 @@ void golpeBomba(int i) {                                                        
     tela.soltarJoint();
   }
 }
-boolean contactados(FContact c, FBodyPlus c1, FBodyPlus c2) {      //función que simplifica las condiciones de colisión
+boolean contactados(FContact c, FBodyPlus c1, FBodyPlus c2) {      //función que simplifica las condiciones de colisión (al final no hizo falta)
   FBody cuerpo1 = c.getBody1();
   FBody cuerpo2 = c.getBody2();
   FBody plus1 = c1.getFBody();
@@ -406,6 +409,7 @@ boolean contactados(FContact c, FBodyPlus c1, FBodyPlus c2) {      //función qu
 //--------------------------------------------------------------------------------------------------------------------------------EFECTO CLIC
 void hacerClic() {
   if (pantalla == MENU) {
+    clicBoton.play();
     pantalla = TUTO;
   }
 

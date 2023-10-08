@@ -3,21 +3,27 @@ import oscP5.*;
 OscP5 receptor;
 OscProperties propiedades;
 
-float[][] dedoMedio, dedoAnular;
-float[][] palma;
-boolean gestoDeSpiderman;
+
+//------------------------------------------------------------------------------------------------------------GUARDADO DE SEÑAL
+float[][] dedoMedio, preMedio, dedoAnular, preAnular, dedoIndice, preIndice;
+float[][] palma, prePalma;
 
 int nodoX = 0;
 int nodoY = 1;
 int nodoBase = 0;
 int nodoPunta = 1;
 
-float handposeWidth = 300;
+boolean gestoClic;
+
+//------------------------------------------------------------------------------------------------------------FILTRADO DE SEÑAL
+float handposeWidth = 300;          //márgenes para mapear la señal, sólo toma una limitada zona de la captura
 float handpose0X = 100;
 float handposeHeight = 350;
 float handpose0Y = 150;
 
 float palmaCentro = height*2;
+
+float umbral = 20;
 
 
 //--------------------------------------------------------------------------------------------------------------------------------SETUP
@@ -26,31 +32,65 @@ void setupOsc() {
 
   dedoMedio = new float[2][2];    //nodo - coord
   dedoAnular = new float[2][2];
+  dedoIndice = new float[2][2];
   palma = new float[2][2];
 
-  gestoDeSpiderman = false;
+  preMedio = new float[2][2];
+  preAnular = new float[2][2];
+  preIndice = new float[2][2];
+  prePalma = new float[2][2];
 }
 
 
 //--------------------------------------------------------------------------------------------------------------------------------CÁLCULOS
 void calcularOsc() {
   if (!usarMouse) {
-    cursorX = constrain(palma[nodoPunta][nodoX], 0, width);      //mover el cursor a la mano del usuario
-    cursorY = constrain(palma[nodoPunta][nodoY], 0, height);
+    //------------------------------------------------------------------------------------------------------------CURSOR
+    float ruidoCursor = dist(prePalma[nodoPunta][nodoX], prePalma[nodoPunta][nodoY], palma[nodoPunta][nodoX], palma[nodoPunta][nodoY]);
+    float cambioCursor = dist(cursorX, cursorY, palma[nodoPunta][nodoX], palma[nodoPunta][nodoY]);
+    if ((ruidoCursor > umbral) || (cambioCursor > umbral)) {
+      cursorX = constrain(lerp(palma[nodoPunta][nodoX], prePalma[nodoPunta][nodoX], 0.5), 0, width);      //mover el cursor a la mano del usuario
+      cursorY = constrain(lerp(palma[nodoPunta][nodoY], prePalma[nodoPunta][nodoY], 0.5), 0, height);
+    }
 
-    if ((dedoMedio[nodoPunta][nodoY] > dedoMedio[nodoBase][nodoY]) || (dedoAnular[nodoPunta][nodoY] > dedoAnular[nodoBase][nodoY])) {
-      if (!gestoDeSpiderman) {
+    //------------------------------------------------------------------------------------------------------------GESTO DE SPIDERMAN
+    float ruidoMedio = dist(preMedio[nodoPunta][nodoX], preMedio[nodoPunta][nodoY], dedoMedio[nodoPunta][nodoX], dedoMedio[nodoPunta][nodoY]);
+    float ruidoAnular = dist(preAnular[nodoPunta][nodoX], preAnular[nodoPunta][nodoY], dedoAnular[nodoPunta][nodoX], dedoAnular[nodoPunta][nodoY]);
+    float ruidoIndice = dist(preIndice[nodoPunta][nodoX], preIndice[nodoPunta][nodoY], dedoIndice[nodoPunta][nodoX], dedoIndice[nodoPunta][nodoY]);
+
+    boolean dedoMedioAbajo = (dedoMedio[nodoPunta][nodoY] > dedoMedio[nodoBase][nodoY]);
+    boolean dedoAnularAbajo = (dedoAnular[nodoPunta][nodoY] > dedoAnular[nodoBase][nodoY]);
+    boolean dedoIndiceAbajo = (dedoIndice[nodoPunta][nodoY] > dedoIndice[nodoBase][nodoY]);
+    if ((dedoMedioAbajo || dedoAnularAbajo) && !dedoIndiceAbajo) {
+      if (!gestoClic) {
         hacerClic();                  //hacer "click" al hacer el gesto de Spiderman
-        gestoDeSpiderman = true;
+        gestoClic = true;
       }
-    } else {
-      if (gestoDeSpiderman) {
+    } else if (!dedoMedioAbajo && !dedoAnularAbajo && !dedoIndiceAbajo) {
+      if (gestoClic) {
         soltarClic();
-        gestoDeSpiderman = false;                    //soltar al abrir la mano
+        gestoClic = false;                    //soltar al abrir la mano
       }
     }
+
+    //------------------------------------------------------------------------------------------------------------MEMORIA DEL FRAME ANTERIOR
+    prePalma[nodoPunta][nodoX] = palma[nodoPunta][nodoX];
+    prePalma[nodoPunta][nodoY] = palma[nodoPunta][nodoY];
+
+    if (ruidoMedio > umbral) {
+      preMedio[nodoPunta][nodoX] = dedoMedio[nodoPunta][nodoX];
+      preMedio[nodoPunta][nodoY] = dedoMedio[nodoPunta][nodoY];
+    }
+    if (ruidoAnular > umbral) {
+      preAnular[nodoPunta][nodoX] = dedoAnular[nodoPunta][nodoX];
+      preAnular[nodoPunta][nodoY] = dedoAnular[nodoPunta][nodoY];
+    }
+    if (ruidoIndice > umbral) {
+      preIndice[nodoPunta][nodoX] = dedoIndice[nodoPunta][nodoX];
+      preIndice[nodoPunta][nodoY] = dedoIndice[nodoPunta][nodoY];
+    }
   } else {
-    cursorX = mouseX;                  //mover el cursor al mouse
+    cursorX = mouseX;                  //mover el cursor al mouse (para testear)
     cursorY = mouseY;
   }
 }
@@ -104,6 +144,14 @@ void oscEvent(OscMessage mensaje) {
 
     dedoMedio[nodoPunta][nodoX] = getNodo(mensaje, nodoX+9);          //ubicar la punta del dedo medio
     dedoMedio[nodoPunta][nodoY] = getNodo(mensaje, nodoY+9);
+  }
+
+  if (mensaje.addrPattern().equals("/annotations/indexFinger")) {
+    dedoIndice[nodoBase][nodoX] = getNodo(mensaje, nodoX+3);          //ubicar la base del dedo índice
+    dedoIndice[nodoBase][nodoY] = getNodo(mensaje, nodoY+3);
+
+    dedoIndice[nodoPunta][nodoX] = getNodo(mensaje, nodoX+9);          //ubicar la punta del dedo índice
+    dedoIndice[nodoPunta][nodoY] = getNodo(mensaje, nodoY+9);
   }
 }
 float getNodo(OscMessage m, int p) {

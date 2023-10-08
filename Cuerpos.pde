@@ -383,7 +383,7 @@ class Spiderman extends Personaje {
     this.crearCuerpo(ConG, new FBox(this.tam, this.tam));
     this.getFBody().setFriction(100);
     this.getFBody().setDensity(0.25);
-    this.getFBody().setRotatable(false);
+    //this.getFBody().setRotatable(false);
   }
 
 
@@ -635,8 +635,8 @@ class Telarania {
   void soltarJoint() {
     if (this.enganchado) {
       if (this.colgado) {                        //descolgarse
+        soltarTela.play();
         this.telaJoint.removeFromWorld();
-
         if (etapasTuto == 0) {
           etapasTuto = 1;        //avanzar tutorial
         }
