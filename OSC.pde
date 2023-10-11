@@ -1,3 +1,8 @@
+/*
+ HANDPOSE-OBS 1.2: https://github.com/faaip/HandPose-OSC/releases/tag/v1.2
+ */
+
+
 //--------------------------------------------------------------------------------------------------------------------------------DECLARACIÓN
 import oscP5.*;
 OscP5 receptor;
