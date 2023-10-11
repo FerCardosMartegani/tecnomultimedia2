@@ -1,5 +1,6 @@
 /*
  TP1 Comisión Lisandro - Fernando Cardos, Clara Rovarino, Elian Rodriguez
+ video explicativo: https://youtu.be/3yERc22p0WU
  */
 
 
