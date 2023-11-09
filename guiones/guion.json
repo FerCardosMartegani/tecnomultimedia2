@@ -1,0 +1,45 @@
+{
+  "audio": "audios/Audio.mp3",
+  "modelo": "modelos/Tecno2tp3.glb",
+  "fondo": "rgb(0,0,0)",
+  "data": [
+    {
+      "tiempo": "00:00",
+      "duracion": 1000,
+      "camara": "cam1",
+      "target": "tar1",
+      "nombre": "----pasillo"
+    },
+    {
+      "tiempo": "00:01",
+      "duracion": 15000,
+      "camara": "cam2",
+      "target": "tar1"
+    },
+    {
+      "tiempo": "00:16",
+      "duracion": 16000,
+      "camara": "cam3",
+      "target": "tar1"
+    },
+    {
+      "tiempo": "00:32",
+      "duracion": 16000,
+      "camara": "cam4",
+      "target": "tar1"
+    },
+    {
+      "tiempo": "00:48",
+      "duracion": 16000,
+      "camara": "cam5",
+      "target": "tar2",
+      "nombre": "----llegar al valle"
+    },
+    {
+      "tiempo": "01:00",
+      "duracion": 16000,
+      "camara": "cam5",
+      "target": "tar2"
+    }
+  ]
+}
