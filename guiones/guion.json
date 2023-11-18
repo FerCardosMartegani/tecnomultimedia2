@@ -24,22 +24,110 @@
     },
     {
       "tiempo": "00:32",
-      "duracion": 16000,
+      "duracion": 15000,
       "camara": "cam4",
       "target": "tar1"
     },
     {
-      "tiempo": "00:48",
-      "duracion": 16000,
-      "camara": "cam5",
-      "target": "tar2",
+      "tiempo": "00:47",
+      "duracion": 1000,
+      "camara": "tar1",
+      "target": "cam5",
       "nombre": "----llegar al valle"
     },
     {
-      "tiempo": "01:00",
-      "duracion": 16000,
+      "tiempo": "00:48",
+      "duracion": 23000,
       "camara": "cam5",
       "target": "tar2"
+    },
+    {
+      "tiempo": "01:11",
+      "duracion": 1000,
+      "camara": "cam5",
+      "target": "tar2",
+      "nombre": "----los tubos"
+    },
+    {
+      "tiempo": "01:12",
+      "duracion": 9000,
+      "camara": "cam6",
+      "target": "tar3"
+    },
+    {
+      "tiempo": "01:21",
+      "duracion": 9000,
+      "camara": "cam7",
+      "target": "tar1"
+    },
+    {
+      "tiempo": "01:30",
+      "duracion": 1000,
+      "camara": "cam7",
+      "target": "tar4",
+      "nombre": "----las plantas"
+    },
+    {
+      "tiempo": "01:31",
+      "duracion": 8000,
+      "camara": "cam8",
+      "target": "tar4"
+    },
+    {
+      "tiempo": "01:37",
+      "duracion": 6000,
+      "camara": "tar4",
+      "target": "cam9"
+    },
+    {
+      "tiempo": "01:43",
+      "duracion": 5000,
+      "camara": "cam9",
+      "target": "cam5"
+    },
+    {
+      "tiempo": "01:48",
+      "duracion": 1000,
+      "camara": "cam9",
+      "target": "tar5",
+      "nombre": "----el barco"
+    },
+    {
+      "tiempo": "01:49",
+      "duracion": 11000,
+      "camara": "cam10",
+      "target": "tar5"
+    },
+    {
+      "tiempo": "02:00",
+      "duracion": 10000,
+      "camara": "cam11",
+      "target": "tar5"
+    },
+    {
+      "tiempo": "02:10",
+      "duracion": 7000,
+      "camara": "cam12",
+      "target": "cam13"
+    },
+    {
+      "tiempo": "02:17",
+      "duracion": 1000,
+      "camara": "cam12",
+      "target": "tar6",
+      "nombre": "----final"
+    },
+    {
+      "tiempo": "02:18",
+      "duracion": 10000,
+      "camara": "cam13",
+      "target": "tar6"
+    },
+    {
+      "tiempo": "02:28",
+      "duracion": 10000,
+      "camara": "cam14",
+      "target": "tar6"
     }
   ]
 }
