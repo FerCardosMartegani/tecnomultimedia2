@@ -97,7 +97,7 @@ function draw(){
     for(let i=0; i<cantidadColumnasFondo; i++){
       let xi = calcularColumna(0, i, cantidadColumnasFondo);
       let xf = calcularColumna(1, i, cantidadColumnasFondo);
-      columnasFondo[i].recalcular(xi,xf);    //cambiar la curvatura de las columnas
+      //columnasFondo[i].recalcular(xi,xf);    //cambiar la curvatura de las columnas
     }
 
     //-------------------------------------------------------------------------COLUMNAS CENTRALES
@@ -105,7 +105,7 @@ function draw(){
     for(let i=0; i<cantidadColumnasCentro; i++){
       let xi = calcularColumna(0, i, cantidadColumnasCentro);
       let xf = calcularColumna(1, i, cantidadColumnasCentro);
-      columnas[i].recalcular(xi,xf);    //cambiar la curvatura de las columnas
+      //columnas[i].recalcular(xi,xf);    //cambiar la curvatura de las columnas
     }
 
     preAmplitud = amplitud;       //guardar datos del último sonido
@@ -126,10 +126,10 @@ function draw(){
     clear();          //borrar dibujo anterior para no saturar la memoria (nos tiró ese error varias veces)
     background(360);
     for(let i=0; i<cantidadColumnasFondo; i++){
-      columnasFondo[i].dibujar();                  //dibujar columnas del fondo
+      //columnasFondo[i].dibujar();                  //dibujar columnas del fondo
     }
     for(let i=0; i<cantidadColumnasCentro; i++){
-      columnas[i].dibujar();                  //dibujar columnas centrales por encima del fondo
+     // columnas[i].dibujar();                  //dibujar columnas centrales por encima del fondo
     }
   }
 
@@ -175,7 +175,7 @@ function configInicial(){       //crea las instancias de objetos columna
   for(let i=0; i<cantidadColumnasFondo; i++){
     let xi = calcularColumna(0, i, cantidadColumnasFondo);
     let xf = calcularColumna(1, i, cantidadColumnasFondo);
-    columnasFondo[i] = new Columna(xi,xf, false);    //instanciar columnas (X inicial, X final, sólo primitivas)
+   // columnasFondo[i] = new Columna(xi,xf, false);    //instanciar columnas (X inicial, X final, sólo primitivas)
   }
 
   //-------------------------------------------------------------------------------------COLUMNAS CENTRALES
@@ -183,7 +183,7 @@ function configInicial(){       //crea las instancias de objetos columna
   for(let i=0; i<cantidadColumnasCentro; i++){
     let xi = calcularColumna(0, i, cantidadColumnasCentro);
     let xf = calcularColumna(1, i, cantidadColumnasCentro);
-    columnas[i] = new Columna(xi,xf, true);    //instanciar columnas (X inicial, X final, incluir imágenes)
+   // columnas[i] = new Columna(xi,xf, true);    //instanciar columnas (X inicial, X final, incluir imágenes)
   }
 }
 
